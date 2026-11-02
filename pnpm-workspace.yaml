@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# pnpm blocks dependency install scripts by default (supply-chain safety).
+# These two are required by wrangler: esbuild bundles code, workerd is the local Workers runtime.
+allowBuilds:
+  esbuild: true
+  workerd: true

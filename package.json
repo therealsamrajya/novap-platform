@@ -1,0 +1,12 @@
+{
+  "name": "novap-platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:api": "pnpm --filter @novap/api dev",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  }
+}

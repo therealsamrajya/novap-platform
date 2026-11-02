@@ -1,0 +1,36 @@
+// Cloudflare Worker config. "Bindings" listed here appear on `env` in code:
+//   env.DB      -> D1 database (SQLite)
+//   env.BUCKET  -> R2 bucket (product images)
+// In `wrangler dev` everything runs locally (stored in .wrangler/), so no
+// Cloudflare account is needed until deploy. The database_id below is a
+// placeholder; replace it with the real id from `wrangler d1 create` before deploying.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "novap-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  "vars": {
+    "APP_ENV": "development",
+    "SHOP_URL": "http://localhost:5173",
+    "ADMIN_URL": "http://localhost:5174"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "novap-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "src/db/migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    {
+      "binding": "BUCKET",
+      "bucket_name": "novap-images"
+    }
+  ]
+}
