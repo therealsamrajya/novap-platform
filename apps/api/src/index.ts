@@ -1,11 +1,15 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
-import type { ApiError } from "@novap/shared";
+import type { ApiError, User } from "@novap/shared";
 import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
+import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
+import { SESSION_COOKIE } from "./lib/session";
+import { loadSession } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
+import { authRoute } from "./routes/auth";
 import { categoriesRoute } from "./routes/categories";
 import { contactRoute } from "./routes/contact";
 import { healthRoute } from "./routes/health";
@@ -13,7 +17,8 @@ import { imagesRoute } from "./routes/images";
 import { productsRoute } from "./routes/products";
 
 // `Env` is generated from wrangler.jsonc by `pnpm types` (worker-configuration.d.ts).
-export type AppEnv = { Bindings: Env };
+// Variables: per-request values set by middleware, read with c.get("user") / c.var.user.
+export type AppEnv = { Bindings: Env; Variables: { user: User | null } };
 
 const app = new OpenAPIHono<AppEnv>();
 
@@ -28,7 +33,16 @@ app.use("/api/*", (c, next) =>
   })(c, next),
 );
 
+// CORS alone doesn't stop a plain HTML form on another site from POSTing here.
+// csrf() rejects form-style requests whose Origin isn't the shop or admin.
+// (JSON requests from other origins are already blocked by the CORS preflight.)
+app.use("/api/*", (c, next) => csrf({ origin: [c.env.SHOP_URL, c.env.ADMIN_URL] })(c, next));
+
+// Sets c.var.user (or null) from the session cookie. Never rejects on its own.
+app.use("/api/*", loadSession);
+
 app.route("/api/health", healthRoute);
+app.route("/api/auth", authRoute);
 app.route("/api/categories", categoriesRoute);
 app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
@@ -46,6 +60,12 @@ const docsOutsideProduction: MiddlewareHandler<AppEnv> = async (c, next) => {
 app.use("/api/openapi.json", docsOutsideProduction);
 app.use("/api/docs", docsOutsideProduction);
 
+app.openAPIRegistry.registerComponent("securitySchemes", "cookieAuth", {
+  type: "apiKey",
+  in: "cookie",
+  name: SESSION_COOKIE,
+  description: "Session cookie set by POST /api/auth/login. Browsers send it automatically.",
+});
 app.doc31("/api/openapi.json", {
   openapi: "3.1.0",
   info: {
@@ -56,6 +76,7 @@ app.doc31("/api/openapi.json", {
       "`issues` only on 400. Lists return `{ items, page, limit, total }`.",
   },
   tags: [
+    { name: "Auth", description: "Register, log in, log out, current user" },
     { name: "Catalog", description: "Public products, categories and images" },
     { name: "Contact", description: "Public contact form" },
     { name: "System", description: "Health and diagnostics" },
