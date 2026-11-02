@@ -23,10 +23,17 @@ export const json = <T extends z.ZodType>(schema: T, description: string) => ({
 
 export const errors = {
   400: json(ApiError, "Invalid input. `issues` lists each problem"),
+  401: json(ApiError, "Not logged in, or the session expired"),
+  403: json(ApiError, "Logged in, but not allowed (e.g. not an admin)"),
   404: json(ApiError, "Not found"),
+  409: json(ApiError, "Conflicts with existing data"),
   415: json(ApiError, "Body must be sent with Content-Type: application/json"),
   500: json(ApiError, "Internal server error"),
 } as const;
+
+// Add `security: cookieAuth` to routes that need a login. Shows a lock icon in Swagger.
+// The scheme itself is registered in index.ts.
+export const cookieAuth = [{ cookieAuth: [] }];
 
 export const slugParams = (example: string) =>
   z.object({
