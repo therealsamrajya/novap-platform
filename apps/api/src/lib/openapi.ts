@@ -24,6 +24,7 @@ export const json = <T extends z.ZodType>(schema: T, description: string) => ({
 export const errors = {
   400: json(ApiError, "Invalid input. `issues` lists each problem"),
   404: json(ApiError, "Not found"),
+  415: json(ApiError, "Body must be sent with Content-Type: application/json"),
   500: json(ApiError, "Internal server error"),
 } as const;
 

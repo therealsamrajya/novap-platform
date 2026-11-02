@@ -65,7 +65,7 @@ Never edit an old migration file — always generate a new one.
 
 1. [x] Scaffold — monorepo, Worker, D1 + R2 bindings, shared package
 2. [x] Database — Drizzle schema, migrations, seed data
-3. [ ] Public API — products, categories, filters, pagination, contact form
+3. [x] Public API — products, categories, filters, pagination, contact form
 4. [ ] Auth — register, login, sessions, admin role
 5. [ ] Admin API — product/variant/category CRUD, image upload to R2, contact inbox
 6. [ ] Checkout — Stripe Checkout, webhook, stock, guest + user orders

@@ -32,6 +32,9 @@ export type ProductSummary = z.infer<typeof productSummarySchema>;
   `z.enum(["true","false"]).transform(v => v === "true")`, never `z.coerce.boolean()`
   (it turns `"false"` into true).
 - Emails: `z.email().toLowerCase()`. Free text: `.trim()` and a `.max()` on everything.
+- Form messages: write user-facing messages (`.min(1, "Name is required")`). For a missing field use the
+  `required()` pattern in `contact.ts`. A plain `z.string({ error })` would also override the max-length message.
+  Move `required()` to a shared helper when a second form needs it.
 - Lists: extend `paginationQuerySchema`; respond with `paginatedSchema(itemSchema)`.
 - After adding a schema, check the generated spec (`/api/openapi.json`). Coerced params can show up as
   `integer | null`; fix that with `.meta({ type: "integer", minimum: 0 })` (see `priceParam`).
