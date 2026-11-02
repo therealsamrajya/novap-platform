@@ -28,7 +28,7 @@ description: Start, carry out and finish a NŌVAP roadmap phase (README roadmap,
 ## Finish
 
 - [ ] `pnpm typecheck` passes
-- [ ] All new endpoints are documented in `docs/api.md`
+- [ ] All new endpoints appear in Swagger (`/api/docs`) with params, response schemas and error statuses
 - [ ] `docs/architecture.md` is updated if a new pattern or layer was introduced
 - [ ] New env vars are in `wrangler.jsonc` / `.dev.vars.example`; `types` regenerated
 - [ ] Roadmap checkbox ticked in `README.md` (in the last PR of the phase)

@@ -33,7 +33,7 @@ Wait until it answers:
 curl -s http://localhost:8787/api/health
 ```
 
-Expect `"status":"ok","db":true,"storage":true`. If port 8787 is busy, an earlier dev server is
+Expect `"status":"ok","db":true,"storage":true`. Also open http://localhost:8787/api/docs: new endpoints must appear there. If port 8787 is busy, an earlier dev server is
 still running. Reuse it, or stop that one task.
 
 ## 4. Smoke test

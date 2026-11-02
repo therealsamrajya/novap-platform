@@ -31,7 +31,7 @@ pnpm dev:api          # http://localhost:8787/api/health
 
 | Command | What it does |
 |---|---|
-| `pnpm dev:api` | Run the API locally (D1 + R2 simulated in `apps/api/.wrangler/`) |
+| `pnpm dev:api` | Run the API locally (D1 + R2 simulated in `apps/api/.wrangler/`). Swagger UI: http://localhost:8787/api/docs |
 | `pnpm typecheck` | Type-check every package |
 | `pnpm --filter @novap/api types` | Regenerate `Env` types after editing `wrangler.jsonc` |
 | `pnpm --filter @novap/api db:generate` | Create a new SQL migration after editing `src/db/schema.ts` |
@@ -58,7 +58,7 @@ Never edit an old migration file — always generate a new one.
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md) — layers, request flow, data model, key decisions
-- [docs/api.md](docs/api.md) — endpoint reference
+- [docs/api.md](docs/api.md) — API conventions; full interactive reference at http://localhost:8787/api/docs (Swagger UI)
 - [CLAUDE.md](CLAUDE.md) + `.claude/skills/` — instructions for Claude Code
 
 ## Roadmap
