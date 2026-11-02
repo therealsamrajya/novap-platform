@@ -53,6 +53,7 @@ Never edit an old migration file — always generate a new one.
 - Auth uses session cookies (httpOnly), stored in D1.
 - Orders are recorded for guests (`guest_email`) and registered users (`user_id`).
 - Only the Stripe webhook marks an order as paid.
+- Branching, commits and PRs: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Roadmap
 
