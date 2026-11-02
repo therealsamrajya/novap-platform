@@ -21,7 +21,7 @@ Run from repo root.
 
 ```sh
 pnpm typecheck                                  # must pass before any PR
-pnpm dev:api                                    # http://localhost:8787
+pnpm dev:api                                    # http://localhost:8787, Swagger UI at /api/docs
 pnpm --filter @novap/api db:generate            # after editing schema.ts
 pnpm --filter @novap/api db:migrate:local
 pnpm --filter @novap/api db:reset:local         # wipe + migrate + seed.sql
@@ -31,13 +31,16 @@ pnpm --filter @novap/api types                  # after editing wrangler.jsonc
 No test runner yet. Verify by typecheck plus curl against `pnpm dev:api` (see the `verify-api` skill).
 
 Dev machine is Windows. Bash tool is Git Bash; `curl` works there.
+Running wrangler directly (e.g. `d1 execute`, `r2 object put`) from the Bash tool: `npx wrangler` hangs
+and `pnpm exec wrangler` prints nothing. Use the following from `apps/api`, with `CI=true`:
+`node node_modules/wrangler/bin/wrangler.js <cmd> --local`. The `pnpm --filter` scripts above work fine.
 
 ## Code layout (api)
 
 ```
 apps/api/src/
-  index.ts            app, global middleware, route mounting, exports AppEnv
-  routes/<name>.ts    one Hono sub-app per resource; thin: parse input, call service, return JSON
+  index.ts            app (OpenAPIHono), global middleware, route mounting, OpenAPI doc + Swagger UI, exports AppEnv
+  routes/<name>.ts    one createRouter() per resource, routes declared with createRoute; thin: validated input -> service -> JSON
   services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports
   lib/                small pure helpers (pagination, slugs, ...)
   middleware/         error handler (more in phase 4: auth, admin)
@@ -48,12 +51,20 @@ apps/api/src/
 
 ## Conventions (follow strictly)
 
-- **Validation**: request input is validated with a zod schema from `@novap/shared`.
-  Use `schema.parse(...)` in routes. Thrown `ZodError` becomes a 400 in
-  `middleware/error.ts`. `@hono/zod-validator` is not installed, so do not use it.
+- **Routes + docs**: every endpoint is declared with `createRoute` (`@hono/zod-openapi`) on a
+  `createRouter()` from `lib/openapi.ts`. Input and response schemas come from `@novap/shared` (plain zod
+  with `.meta()`; shared must not import Hono). This one declaration validates the request and generates
+  the OpenAPI spec (`/api/openapi.json`) and Swagger UI (`/api/docs`). Never hand-write endpoint docs.
+  Read input with `c.req.valid(...)`. The router hook rethrows validation errors, so they become 400s in
+  `middleware/error.ts`.
 - **Errors**: see "Error responses" below. Never return stack traces or DB errors.
 - **DB access**: `const db = getDb(c.env.DB)` once per request (`db/client.ts`). Prefer
   `db.query.<table>.findMany({ with })` for nested reads, query builder for filters/aggregates.
+- **Drizzle subqueries** (`.as("name")`): every selected column name must be unique. When joined tables
+  share names (`id`, `slug`, `name`), alias them with ``sql`${t.col}`.as("t_col")``. Otherwise the
+  outer select silently reads the wrong columns. See `services/catalog.ts`.
+- **Lists**: extend `paginationQuerySchema`, return `paginated(...)` (`lib/pagination.ts`), and give the sort a stable
+  tie-breaker (`id`) so pages never overlap. Text search goes through `containsText` (`lib/sql.ts`), which escapes LIKE wildcards.
 - **Money**: integer cents, AUD, GST-inclusive. Never floats. Format only in frontends (`formatAud`).
 - **Prices from the client are never trusted.** Checkout re-reads prices from the DB.
 - **Public catalog** returns only `active` products and `active` variants.

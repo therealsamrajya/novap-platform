@@ -11,7 +11,13 @@ export const errorHandler: ErrorHandler = (err, c) => {
     return c.json({ error: err.message } satisfies ApiError, err.status);
   }
   if (err instanceof ZodError) {
-    return c.json({ error: "Invalid input", issues: err.issues } satisfies ApiError, 400);
+    // Only path/message/code are sent, so the issue shape is stable and documented.
+    const issues = err.issues.map(({ path, message, code }) => ({
+      path: path.filter((p): p is string | number => typeof p !== "symbol"),
+      message,
+      code,
+    }));
+    return c.json({ error: "Invalid input", issues } satisfies ApiError, 400);
   }
   // Unknown error: log details server-side, never leak them to the client.
   console.error(err);

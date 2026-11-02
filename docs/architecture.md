@@ -61,4 +61,7 @@ The full definitions, with comments, are in `apps/api/src/db/schema.ts`.
 | Guest and user orders in one table | The only difference is whether `user_id` is null |
 | Order items snapshot the product data | Order history stays correct after a product is edited or deleted |
 | D1 `batch()` instead of transactions | D1 has no interactive transactions; a batch is atomic |
+| Images served by the Worker at `/api/images/<key>`, cached forever | No public bucket is needed yet. Upload code (phase 5) must give every upload a new key, never overwrite one. Phase 9 may move images to an R2 custom domain |
+| Public catalog hides products with no active variant | A product without a buyable variant can't be sold, so the list, the detail page and category counts all agree |
+| API docs generated from code: OpenAPI (`@hono/zod-openapi`) and Swagger UI at `/api/docs` | The zod schemas that validate requests also produce the docs, so the docs can't drift from the code. Shared schemas stay plain zod (`.meta()`), so the frontends don't depend on Hono |
 | Product search uses `LIKE`, not FTS5 | The catalog is small, so a full scan is cheap. It stays in Drizzle with no hand-written SQL. Search lives in one service function, so it can switch to FTS5 later without changing the API |
