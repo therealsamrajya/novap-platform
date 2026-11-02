@@ -1,7 +1,15 @@
 -- Local development sample data. Placeholder products only — real products
 -- will be entered through the admin panel. Prices in AUD cents, GST-inclusive.
 -- Run: pnpm db:seed:local   (or pnpm db:reset:local to wipe + migrate + seed)
--- Admin user is created in phase 4 (needs the password hashing helper).
+--
+-- Dev logins (local only; never use these hashes anywhere real):
+--   admin@novap.local     / novap-admin-dev      (role admin)
+--   customer@novap.local  / novap-customer-dev   (role customer)
+-- Hashes made with: node scripts/hash-password.mjs "<password>"
+
+INSERT INTO users (id, email, name, password_hash, role) VALUES
+  (1, 'admin@novap.local', 'Dev Admin', 'pbkdf2$100000$sJ0DJwn/GP+qjCBuMy07Ug==$BP2VcMzh/tpqiWUovL2Rgsbbtx3VjHdZdbQWJzmudYQ=', 'admin'),
+  (2, 'customer@novap.local', 'Dev Customer', 'pbkdf2$100000$4BV+q6o0VcfXSWIhw/tzXA==$yy7K9DCpl6l1Hf0W26NOBWPV2TwkJgaOS6knqSBqYbc=', 'customer');
 
 INSERT INTO categories (id, name, slug, sort_order) VALUES
   (1, 'Collection', 'collection', 1),

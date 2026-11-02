@@ -7,7 +7,7 @@ import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { SESSION_COOKIE } from "./lib/session";
-import { loadSession } from "./middleware/auth";
+import { loadSession, requireAdmin } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { authRoute } from "./routes/auth";
 import { categoriesRoute } from "./routes/categories";
@@ -40,6 +40,10 @@ app.use("/api/*", (c, next) => csrf({ origin: [c.env.SHOP_URL, c.env.ADMIN_URL] 
 
 // Sets c.var.user (or null) from the session cookie. Never rejects on its own.
 app.use("/api/*", loadSession);
+
+// Everything under /api/admin needs an admin: 401 not logged in, 403 not admin.
+// Phase 5 mounts the admin routes here; the guard already covers them.
+app.use("/api/admin/*", requireAdmin);
 
 app.route("/api/health", healthRoute);
 app.route("/api/auth", authRoute);
