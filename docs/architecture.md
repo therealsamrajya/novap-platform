@@ -21,7 +21,8 @@ Local dev (`wrangler dev`) simulates D1 and R2 in `apps/api/.wrangler/`. No Clou
 ```
 request
   → secureHeaders, CORS (index.ts)
-  → [auth middleware — phase 4]
+  → csrf (blocks cross-site form posts), loadSession (sets c.var.user from the cookie, or null)
+  → requireAdmin on /api/admin/*
   → route  (routes/*.ts)     parse + validate input with @novap/shared schemas
   → service (services/*.ts)  Drizzle queries, business rules
   → JSON response
@@ -58,6 +59,10 @@ The full definitions, with comments, are in `apps/api/src/db/schema.ts`.
 | Prices never taken from the client | The client can tamper with them. Checkout reads prices from D1 |
 | Only the Stripe webhook marks an order paid | The redirect back from Stripe can be faked; the signed webhook can't |
 | Session cookie (httpOnly) whose SHA-256 hash is stored in D1 | Can be revoked. A leaked database row can't be used as a session |
+| Sessions slide: 30 days for customers, 12 hours for admins | An admin cookie can change the whole shop, so it expires sooner. The expiry renews only after half the lifetime has passed, so most requests don't write to D1 |
+| Passwords hashed with PBKDF2-SHA256 (100k iterations, WebCrypto) | Built into Workers, so no WASM dependency. 100k is the Workers maximum. The hash string stores its own iteration count, so the cost can be raised later |
+| `SameSite=Lax` cookie plus Hono `csrf()` origin check | Shop, admin and API share one site, so Lax lets the cookie through while blocking cross-site POSTs. `csrf()` also rejects form posts from other subdomains |
+| No API route grants the admin role | Admins are promoted with a SQL update, so a bug in a public endpoint can't create one |
 | Guest and user orders in one table | The only difference is whether `user_id` is null |
 | Order items snapshot the product data | Order history stays correct after a product is edited or deleted |
 | D1 `batch()` instead of transactions | D1 has no interactive transactions; a batch is atomic |

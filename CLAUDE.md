@@ -43,7 +43,7 @@ apps/api/src/
   routes/<name>.ts    one createRouter() per resource, routes declared with createRoute; thin: validated input -> service -> JSON
   services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports
   lib/                small pure helpers (pagination, slugs, ...)
-  middleware/         error handler (more in phase 4: auth, admin)
+  middleware/         error handler; auth.ts (loadSession, requireAuth, requireAdmin, currentUser, cookie helpers)
   db/schema.ts        Drizzle tables + relations (single file)
   db/migrations/      generated SQL; never hand-edit merged ones
   db/seed.sql         local sample data
@@ -73,6 +73,18 @@ apps/api/src/
 - **Comments**: short, explain *why*. The codebase is read by someone learning the stack, so
   a one-line rationale comment on non-obvious choices is welcome.
 - New env var: add to `wrangler.jsonc` `vars` (non-secret) or `.dev.vars.example` (secret), then `types`.
+
+## Auth
+
+- `loadSession` runs on every `/api/*` request and sets `c.var.user` (`User | null`). It never rejects.
+- Need the user in a handler: `const user = currentUser(c)`. It returns the `User` or throws 401.
+  Also add `security: cookieAuth` and `401: errors[401]` to the `createRoute` so Swagger shows the lock.
+- Admin routes: mount them under `/api/admin/...`. `index.ts` already guards `/api/admin/*` with
+  `requireAdmin` (401/403), so don't add the check per route. List `401` and `403` in each route's `responses`.
+- Owner checks (e.g. "your own order") return 404, so other users' ids aren't confirmed to exist.
+- Never return a raw `users` row. Map it with `toUser` (`services/auth.ts`) so `passwordHash` can't leak.
+- Dev logins (seed): `admin@novap.local` / `novap-admin-dev`, `customer@novap.local` / `novap-customer-dev`.
+  For curl, use a cookie jar (`-c`/`-b`). A body-less POST also needs `-H "Origin: http://localhost:5173"`.
 
 ## Error responses (strict rule)
 
