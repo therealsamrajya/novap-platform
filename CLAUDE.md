@@ -31,6 +31,9 @@ pnpm --filter @novap/api types                  # after editing wrangler.jsonc
 No test runner yet. Verify by typecheck plus curl against `pnpm dev:api` (see the `verify-api` skill).
 
 Dev machine is Windows. Bash tool is Git Bash; `curl` works there.
+Running wrangler directly (e.g. `d1 execute`, `r2 object put`) from the Bash tool: `npx wrangler` hangs
+and `pnpm exec wrangler` prints nothing. Use the following from `apps/api`, with `CI=true`:
+`node node_modules/wrangler/bin/wrangler.js <cmd> --local`. The `pnpm --filter` scripts above work fine.
 
 ## Code layout (api)
 
@@ -54,6 +57,11 @@ apps/api/src/
 - **Errors**: see "Error responses" below. Never return stack traces or DB errors.
 - **DB access**: `const db = getDb(c.env.DB)` once per request (`db/client.ts`). Prefer
   `db.query.<table>.findMany({ with })` for nested reads, query builder for filters/aggregates.
+- **Drizzle subqueries** (`.as("name")`): every selected column name must be unique. When joined tables
+  share names (`id`, `slug`, `name`), alias them with ``sql`${t.col}`.as("t_col")``. Otherwise the
+  outer select silently reads the wrong columns. See `services/catalog.ts`.
+- **Lists**: extend `paginationQuerySchema`, return `paginated(...)` (`lib/pagination.ts`), and give the sort a stable
+  tie-breaker (`id`) so pages never overlap. Text search goes through `containsText` (`lib/sql.ts`), which escapes LIKE wildcards.
 - **Money**: integer cents, AUD, GST-inclusive. Never floats. Format only in frontends (`formatAud`).
 - **Prices from the client are never trusted.** Checkout re-reads prices from the DB.
 - **Public catalog** returns only `active` products and `active` variants.

@@ -3,7 +3,10 @@ import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
 import type { ApiError } from "@novap/shared";
 import { errorHandler } from "./middleware/error";
+import { categoriesRoute } from "./routes/categories";
 import { health } from "./routes/health";
+import { imagesRoute } from "./routes/images";
+import { productsRoute } from "./routes/products";
 
 // `Env` is generated from wrangler.jsonc by `pnpm types` (worker-configuration.d.ts).
 export type AppEnv = { Bindings: Env };
@@ -22,6 +25,9 @@ app.use("/api/*", (c, next) =>
 );
 
 app.route("/api/health", health);
+app.route("/api/categories", categoriesRoute);
+app.route("/api/products", productsRoute);
+app.route("/api/images", imagesRoute);
 
 app.notFound((c) => c.json({ error: "Not found" } satisfies ApiError, 404));
 app.onError(errorHandler);
