@@ -55,6 +55,12 @@ Never edit an old migration file — always generate a new one.
 - Only the Stripe webhook marks an order as paid.
 - Branching, commits and PRs: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
+## Docs
+
+- [docs/architecture.md](docs/architecture.md) — layers, request flow, data model, key decisions
+- [docs/api.md](docs/api.md) — endpoint reference
+- [CLAUDE.md](CLAUDE.md) + `.claude/skills/` — instructions for Claude Code
+
 ## Roadmap
 
 1. [x] Scaffold — monorepo, Worker, D1 + R2 bindings, shared package
