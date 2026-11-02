@@ -4,5 +4,6 @@
 
 export * from "./api";
 export * from "./catalog";
+export * from "./contact";
 export * from "./money";
 export * from "./schemas";

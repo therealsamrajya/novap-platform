@@ -7,6 +7,7 @@ import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
 import { errorHandler } from "./middleware/error";
 import { categoriesRoute } from "./routes/categories";
+import { contactRoute } from "./routes/contact";
 import { healthRoute } from "./routes/health";
 import { imagesRoute } from "./routes/images";
 import { productsRoute } from "./routes/products";
@@ -31,6 +32,7 @@ app.route("/api/health", healthRoute);
 app.route("/api/categories", categoriesRoute);
 app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
+app.route("/api/contact", contactRoute);
 
 // ---------------------------------------------------------------- API docs
 // The OpenAPI spec is generated from the zod schemas used for validation, so it
@@ -55,6 +57,7 @@ app.doc31("/api/openapi.json", {
   },
   tags: [
     { name: "Catalog", description: "Public products, categories and images" },
+    { name: "Contact", description: "Public contact form" },
     { name: "System", description: "Health and diagnostics" },
   ],
 });
