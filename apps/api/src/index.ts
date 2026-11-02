@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { secureHeaders } from "hono/secure-headers";
+import type { ApiError } from "@novap/shared";
 import { errorHandler } from "./middleware/error";
 import { health } from "./routes/health";
 
@@ -22,7 +23,7 @@ app.use("/api/*", (c, next) =>
 
 app.route("/api/health", health);
 
-app.notFound((c) => c.json({ error: "Not found" }, 404));
+app.notFound((c) => c.json({ error: "Not found" } satisfies ApiError, 404));
 app.onError(errorHandler);
 
 export default app;
