@@ -1,18 +1,8 @@
 import { z } from "zod";
 import { paginationQuerySchema } from "./api";
+import { booleanParam, optionalText } from "./validation";
 
 // ---------------------------------------------------------------- query params
-
-// "?inStock=true" -> true. z.coerce.boolean() would turn "false" into true.
-const booleanParam = z.enum(["true", "false"]).transform((v) => v === "true");
-
-// Empty strings ("?q=") are treated as "not set" so forms can send blank fields.
-const optionalText = z
-  .string()
-  .trim()
-  .max(100)
-  .transform((v) => v || undefined)
-  .optional();
 
 // type override: z.coerce makes the generated docs say "integer or null".
 const priceParam = z.coerce.number().int().min(0).max(100_000_000).optional().meta({ type: "integer", minimum: 0 });
