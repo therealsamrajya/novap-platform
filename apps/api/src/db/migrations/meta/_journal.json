@@ -15,6 +15,13 @@
       "when": 1793693937437,
       "tag": "0001_boring_greymalkin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793694389353,
+      "tag": "0002_aberrant_northstar",
+      "breakpoints": true
     }
   ]
 }

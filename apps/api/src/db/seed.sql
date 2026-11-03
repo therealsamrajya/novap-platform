@@ -7,9 +7,9 @@
 --   customer@novap.local  / novap-customer-dev   (role customer)
 -- Hashes made with: node scripts/hash-password.mjs "<password>"
 
-INSERT INTO users (id, email, name, password_hash, role) VALUES
-  (1, 'admin@novap.local', 'Dev Admin', 'pbkdf2$100000$sJ0DJwn/GP+qjCBuMy07Ug==$BP2VcMzh/tpqiWUovL2Rgsbbtx3VjHdZdbQWJzmudYQ=', 'admin'),
-  (2, 'customer@novap.local', 'Dev Customer', 'pbkdf2$100000$4BV+q6o0VcfXSWIhw/tzXA==$yy7K9DCpl6l1Hf0W26NOBWPV2TwkJgaOS6knqSBqYbc=', 'customer');
+INSERT INTO users (id, email, name, password_hash, role, email_verified_at) VALUES
+  (1, 'admin@novap.local', 'Dev Admin', 'pbkdf2$100000$sJ0DJwn/GP+qjCBuMy07Ug==$BP2VcMzh/tpqiWUovL2Rgsbbtx3VjHdZdbQWJzmudYQ=', 'admin', unixepoch()),
+  (2, 'customer@novap.local', 'Dev Customer', 'pbkdf2$100000$4BV+q6o0VcfXSWIhw/tzXA==$yy7K9DCpl6l1Hf0W26NOBWPV2TwkJgaOS6knqSBqYbc=', 'customer', unixepoch());
 
 INSERT INTO categories (id, name, slug, sort_order) VALUES
   (1, 'Collection', 'collection', 1),
@@ -51,7 +51,12 @@ INSERT INTO orders (id, user_id, email, status, subtotal_cents, shipping_cents, 
   (4, NULL, 'jo@example.com', 'cancelled', 8995, 995, 908, 9990, NULL, 'cs_test_seed_4', NULL, NULL, NULL, NULL, unixepoch() - 86400),
   (5, 2, 'customer@novap.local', 'refunded', 17990, 0, 1635, 17990,
    '{"name":"Dev Customer","line1":"20 Sample Road","line2":"Unit 4","city":"Melbourne","state":"VIC","postcode":"3000","country":"AU","phone":"+61400000002"}',
-   'cs_test_seed_5', 'pi_seed_5', unixepoch() - 604800, NULL, NULL, unixepoch() - 604900);
+   'cs_test_seed_5', 'pi_seed_5', unixepoch() - 604800, NULL, NULL, unixepoch() - 604900),
+  -- Guest order placed with the dev customer's email before they had an account (user_id NULL).
+  -- Shows in their account history because the seed marks that email as verified.
+  (6, NULL, 'customer@novap.local', 'paid', 2495, 995, 317, 3490,
+   '{"name":"Dev Customer","line1":"20 Sample Road","line2":"Unit 4","city":"Melbourne","state":"VIC","postcode":"3000","country":"AU","phone":"+61400000002"}',
+   'cs_test_seed_6', 'pi_seed_6', unixepoch() - 1209600, NULL, NULL, unixepoch() - 1209700);
 
 INSERT INTO order_items (order_id, variant_id, product_name, variant_label, sku, unit_price_cents, quantity) VALUES
   (1, 1, 'Reference 01', 'Small', 'REF01-S', 4995, 1),
@@ -59,4 +64,5 @@ INSERT INTO order_items (order_id, variant_id, product_name, variant_label, sku,
   (2, 3, 'Reference 02', 'Small', 'REF02-S', 5495, 2),
   (3, 5, 'Reference 03', 'Small', 'REF03-S', 3995, 1),
   (4, 2, 'Reference 01', 'Large', 'REF01-L', 8995, 1),
-  (5, 2, 'Reference 01', 'Large', 'REF01-L', 8995, 2);
+  (5, 2, 'Reference 01', 'Large', 'REF01-L', 8995, 2),
+  (6, 7, 'Storage Case', 'Standard', 'CASE-BLK', 2495, 1);

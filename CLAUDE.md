@@ -113,6 +113,10 @@ apps/api/src/
   instead of checking first (a check-then-write races).
 - Owner checks (e.g. "your own order") return 404, so other users' ids aren't confirmed to exist.
 - Never return a raw `users` row. Map it with `toUser` (`services/auth.ts`) so `passwordHash` can't leak.
+- Emailed tokens (password reset, email verification) follow the session scheme: random token in the link, only
+  `sha256(token)` in the DB, a new one voids older ones, and use claims it in one conditional statement
+  (`UPDATE ... WHERE used_at IS NULL` / `DELETE ... RETURNING`) so a link can't be used twice.
+- Guest orders count as the user's only when `user.emailVerified` (`ownedBy` in `services/account.ts`).
 - Dev logins (seed): `admin@novap.local` / `novap-admin-dev`, `customer@novap.local` / `novap-customer-dev`.
   For curl, use a cookie jar (`-c`/`-b`). A body-less POST also needs `-H "Origin: http://localhost:5173"`.
 

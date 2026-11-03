@@ -66,7 +66,7 @@ await fetch(`${API}/api/auth/login`, {
 const me = await fetch(`${API}/api/auth/me`, { credentials: "include" }); // 200 User, or 401
 ```
 
-- `POST /api/auth/register` creates a **customer** and logs in (201). 409 if the email exists.
+- `POST /api/auth/register` creates a **customer**, logs in (201) and emails a confirmation link. 409 if the email exists.
 - `POST /api/auth/login` returns the `User` (200). Wrong email and wrong password give the same 401.
 - `POST /api/auth/logout` returns 204, even when not logged in.
 - `GET /api/auth/me` returns the `User`, or 401. Use it on app load to check whether someone is logged in.
@@ -76,7 +76,13 @@ const me = await fetch(`${API}/api/auth/me`, { credentials: "include" }); // 200
   request voids the older link). The shop's reset page sends `POST /api/auth/password/reset { token, password }`:
   204 on success, 400 if the link is invalid, used or expired. A reset logs the account out everywhere, so send the user
   to the login page afterwards. The reset page should set `Referrer-Policy: no-referrer`, so the token in its URL
-  isn't passed on to other sites.
+  isn't passed on to other sites. A reset also confirms the email (the link reached the inbox).
+- **Email confirmation**: `User.emailVerified` is false after registering. The link goes to
+  `SHOP_URL/verify-email?token=...` (valid 24 hours, single use). That page sends `POST /api/auth/verify-email { token }`:
+  204, or 400 if the link is invalid, used or expired. It needs no login, so the link works on any device; refetch
+  `/api/auth/me` afterwards if logged in. `POST /api/auth/verify-email/resend` (logged in, no body) sends a new link and
+  voids the old one: 202, or 409 if already confirmed. Unconfirmed accounts can still log in and buy; only the guest
+  order history (see Account) waits for confirmation.
 - Sessions last **30 days** for customers and **12 hours** for admins. Both renew while in use, so only idle sessions expire.
 - Everything under `/api/admin/*` requires an admin: 401 if not logged in, 403 if not an admin.
 - Nobody becomes admin through the API. Locally the seed has `admin@novap.local` / `novap-admin-dev`.
@@ -84,7 +90,16 @@ const me = await fetch(`${API}/api/auth/me`, { credentials: "include" }); // 200
   `wrangler d1 execute novap-db --remote --command "UPDATE users SET role='admin' WHERE email='you@example.com'"`.
 
 Testing with curl: keep the cookie in a jar with `-c jar` (save) and `-b jar` (send). A POST with no
-body (logout) also needs `-H "Origin: http://localhost:5173"`; browsers send that header on their own.
+body (logout, verify-email/resend) also needs `-H "Origin: http://localhost:5173"`; browsers send that header on their own.
+
+### Account
+
+`GET /api/account/orders` (paginated) and `GET /api/account/orders/{id}` return the logged-in customer's orders: 401
+if not logged in, 404 for an order that isn't theirs. The list contains orders placed while logged in and, once the
+email is confirmed, **guest orders placed with the same email**. Without the confirmation step, anyone could register
+with someone else's email and read their orders and address. Only `paid`, `fulfilled` and `refunded` orders appear;
+unfinished (`pending`) and expired (`cancelled`) checkouts are left out. Seed: `customer@novap.local` has orders 2, 5
+and the guest order 6.
 
 ### Checkout
 

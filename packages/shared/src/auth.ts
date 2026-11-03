@@ -33,12 +33,12 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const forgotPasswordSchema = z.object({ email });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
-// Same answer whether or not the email has an account, so the endpoint can't be used
-// to find out who is registered.
-export const passwordResetRequestedSchema = z.object({
+// "Accepted; an email may follow." Forgot-password answers this whether or not the email
+// has an account, so the endpoint can't be used to find out who is registered.
+export const emailRequestedSchema = z.object({
   received: z.literal(true),
 });
-export type PasswordResetRequested = z.infer<typeof passwordResetRequestedSchema>;
+export type EmailRequested = z.infer<typeof emailRequestedSchema>;
 
 export const resetPasswordSchema = z.object({
   token: z
@@ -59,6 +59,19 @@ export const userSchema = z.object({
   email: z.string().meta({ example: "alex@example.com" }),
   name: z.string().meta({ example: "Alex Citizen" }),
   role: userRoleSchema,
+  emailVerified: z.boolean().meta({
+    description: "Whether the user confirmed the email. Guest orders with this email show in the account only once true",
+    example: true,
+  }),
   createdAt: z.iso.datetime().meta({ example: "2026-11-02T09:30:00.000Z" }),
 });
 export type User = z.infer<typeof userSchema>;
+
+export const verifyEmailSchema = z.object({
+  token: z
+    .string(required("Verification token is required"))
+    .min(1, "Verification token is required")
+    .max(200)
+    .meta({ description: "The `token` query parameter from the emailed link", example: "Zk3p...base64url" }),
+});
+export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;

@@ -51,7 +51,7 @@ Services stay free of Hono, so other routes can reuse them (the Stripe webhook r
 
 - **categories** 1─* **products** 1─* **variants** (what is bought: price, stock, SKU)
 - **products** 1─* **product_images** (R2 keys, ordered)
-- **users** 1─* **sessions**, **password_reset_tokens**, **addresses**, **orders**
+- **users** 1─* **sessions**, **password_reset_tokens**, **email_verification_tokens**, **addresses**, **orders**
 - **orders** 1─* **order_items**. Each item stores a snapshot of name, label, SKU and unit price at purchase time.
 - **stripe_events**: processed webhook ids, kept for idempotency
 - **contact_messages**: contact form inbox (`new | read | archived`)
@@ -102,6 +102,7 @@ HTML version, and user text is escaped with `escapeHtml`. `services/notification
 | Order confirmation | Webhook moves an order `pending` → `paid` | Order email |
 | Contact notification | Contact form message saved (not for honeypot hits) | `ADMIN_NOTIFY_EMAIL`, Reply-To the sender |
 | Password reset | `POST /api/auth/password/forgot` for an existing account | Account email |
+| Email confirmation | Register, or `POST /api/auth/verify-email/resend` | Account email |
 
 - **After the response.** Routes hand the send to `c.executionCtx.waitUntil(...)`. The request doesn't wait for Resend,
   and a failed email can't fail it. That matters most for the webhook: a 500 there would make Stripe retry an event
@@ -148,6 +149,10 @@ HTML version, and user text is escaped with `escapeHtml`. `services/notification
 | Admins can only ship orders (`paid` → `fulfilled` + tracking number) | Payment, cancellation and refunds must match what Stripe did, so only the webhook changes them. A refund made in the Stripe dashboard reaches the order through `charge.refunded` |
 | Resend over plain `fetch`, no SDK | One endpoint is all the API needs. Nothing extra to bundle into the Worker |
 | Password reset tokens: random, stored as sha256, 1 hour, single use, newest only | Same scheme as sessions, so a leaked table can't reset anyone. The token is claimed with one conditional update, so two requests with the same link can't both succeed |
+| Guest orders join the account history only after the email is confirmed | Matching by email alone would let anyone register with someone else's address and read their orders and shipping address. Orders placed while logged in show without confirmation |
+| Unconfirmed accounts can still log in and buy | Confirmation only guards access to guest orders. Blocking login would cost sales for no security gain |
+| A password reset also confirms the email | The reset link reached the inbox, which is the same proof a confirmation link gives |
+| Order history shows only paid, fulfilled and refunded orders | Pending and cancelled orders are unfinished or expired checkouts, not purchases |
 | A password reset deletes every session of the account | The usual reason to reset is a stolen password or session; the old sessions must stop working. The user logs in again |
 | Forgot-password answers 202 for any email, and sends after the response | It can't be used to find out who has an account, by the answer or by its timing |
 | Emails sent with `waitUntil`, failures only logged | Saving the order or message is what matters. An email outage must not turn a paid webhook into a 500 that Stripe retries |

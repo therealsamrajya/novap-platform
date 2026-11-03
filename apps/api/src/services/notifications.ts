@@ -5,7 +5,9 @@ import { orders } from "../db/schema";
 import { contactNotificationEmail } from "../emails/contact-notification";
 import { orderConfirmationEmail } from "../emails/order-confirmation";
 import { passwordResetEmail } from "../emails/password-reset";
+import { verifyEmailEmail } from "../emails/verify-email";
 import type { Mailer } from "../lib/email";
+import { createVerificationToken, VERIFY_TOKEN_TTL_MS } from "./email-verification";
 
 // Emails run after the response is sent (routes pass these to waitUntil), so they
 // never slow down or fail the request that triggered them. A failed send is only
@@ -52,6 +54,22 @@ export async function sendPasswordReset(
     await mailer(passwordResetEmail(reset.email, reset.name, url, validMinutes));
   } catch (err) {
     console.error("Password reset email failed", err);
+  }
+}
+
+// Creates the token here too, so callers just say "send the user a verification email".
+export async function sendEmailVerification(
+  db: Db,
+  mailer: Mailer,
+  shopUrl: string,
+  user: { id: number; name: string; email: string },
+): Promise<void> {
+  try {
+    const token = await createVerificationToken(db, user.id);
+    const url = `${shopUrl}/verify-email?token=${encodeURIComponent(token)}`;
+    await mailer(verifyEmailEmail(user.email, user.name, url, VERIFY_TOKEN_TTL_MS / 3_600_000));
+  } catch (err) {
+    console.error(`Verification email for user #${user.id} failed`, err);
   }
 }
 

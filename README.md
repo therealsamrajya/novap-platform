@@ -73,6 +73,6 @@ Never edit an old migration file — always generate a new one.
 4. [x] Auth — register, login, sessions, admin role
 5. [x] Admin API — product/variant/category CRUD, image upload to R2, contact inbox
 6. [x] Checkout — Stripe Checkout, webhook, stock, guest + user orders
-7. [ ] Emails + account — confirmations, password reset, order history, contact notifications
+7. [x] Emails + account — confirmations, password reset, order history, contact notifications
 8. [ ] Frontends — admin dashboard, storefront
 9. [ ] Hardening + deploy — rate limits, logging, environments, domain

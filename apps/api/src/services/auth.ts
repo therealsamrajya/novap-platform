@@ -13,6 +13,7 @@ const toUser = (row: UserRow): User => ({
   email: row.email,
   name: row.name,
   role: row.role,
+  emailVerified: row.emailVerifiedAt !== null,
   createdAt: row.createdAt.toISOString(),
 });
 

@@ -1,6 +1,6 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import type { Db } from "../db/client";
-import { passwordResetTokens, sessions, users } from "../db/schema";
+import { emailVerificationTokens, passwordResetTokens, sessions, users } from "../db/schema";
 import { hashPassword } from "../lib/password";
 // Same random-token + sha256 scheme as session cookies.
 import { hashSessionToken as hashToken, newSessionToken as newToken } from "../lib/session";
@@ -32,7 +32,7 @@ export async function createPasswordResetToken(
 
 // Sets a new password if the token is valid, unused and not expired. Returns false otherwise.
 // Every session of the account is deleted, so a stolen session (the usual reason to reset)
-// stops working too.
+// stops working too. Also marks the email verified, and drops pending verification links.
 export async function resetPassword(db: Db, token: string, password: string): Promise<boolean> {
   const id = await hashToken(token);
   // Hash before claiming the token: hashing is slow, and the claim below should be quick.
@@ -54,9 +54,14 @@ export async function resetPassword(db: Db, token: string, password: string): Pr
   if (!claimed) return false;
 
   await db.batch([
-    db.update(users).set({ passwordHash }).where(eq(users.id, claimed.userId)),
+    // The link arrived in the inbox, so the email is proven too (first verification time kept).
+    db
+      .update(users)
+      .set({ passwordHash, emailVerifiedAt: sql`coalesce(${users.emailVerifiedAt}, unixepoch())` })
+      .where(eq(users.id, claimed.userId)),
     db.delete(sessions).where(eq(sessions.userId, claimed.userId)),
     db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, claimed.userId)),
+    db.delete(emailVerificationTokens).where(eq(emailVerificationTokens.userId, claimed.userId)),
   ]);
   return true;
 }
