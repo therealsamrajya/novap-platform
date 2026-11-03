@@ -1,11 +1,14 @@
 import { z } from "zod";
 import { paginationQuerySchema } from "./api";
 import { categorySummarySchema, productImageSchema } from "./catalog";
+import { SLUG_MAX, SLUG_PATTERN } from "./slug";
 import { booleanParam, optionalText, required } from "./validation";
 
 // Admin catalogue: inputs for create/update and the responses the admin
 // dashboard reads. Unlike the public catalogue, admin sees everything,
 // including inactive products and variants, stock counts and sort orders.
+// Input schemas are strict: an unknown key (a typo, or a read-only field like
+// productCount) is a 400 instead of being silently dropped.
 
 // ---------------------------------------------------------------- field rules
 
@@ -15,9 +18,13 @@ const slug = z
   .trim()
   .toLowerCase()
   .min(1, "Slug is required")
-  .max(100)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and single hyphens")
+  .max(SLUG_MAX)
+  .regex(SLUG_PATTERN, "Use lowercase letters, numbers and single hyphens")
   .meta({ example: "reference-02" });
+
+// On create the slug may be left out: the API then makes one from the name with slugify().
+const optionalSlug = (example: string) =>
+  slug.optional().meta({ description: "Generated from the name when left out", example });
 
 const sortOrder = z.number().int().min(-10_000).max(10_000).meta({ description: "Lower comes first", example: 0 });
 
@@ -34,8 +41,12 @@ const nullableText = (max: number) =>
     .nullable();
 
 // PATCH bodies: every field optional, but an empty body is almost certainly a client bug.
+// `when` skips the check if the body already failed (e.g. only unknown keys), so that error isn't repeated.
 const notEmpty = (o: object) => Object.values(o).some((v) => v !== undefined);
-const notEmptyMessage = "Send at least one field to change";
+const notEmptyMessage = {
+  message: "Send at least one field to change",
+  when: (payload: { issues: unknown[] }) => payload.issues.length === 0,
+};
 
 // Ids in the path, e.g. /api/admin/products/{id}. Path params are strings, so coerce.
 export const idParamSchema = z.coerce.number().int().positive().meta({ type: "integer", minimum: 1 });
@@ -48,10 +59,14 @@ const categoryFields = {
   sortOrder,
 };
 
-export const categoryCreateSchema = z.object({ ...categoryFields, sortOrder: sortOrder.default(0) });
+export const categoryCreateSchema = z.strictObject({
+  ...categoryFields,
+  slug: optionalSlug("collection"),
+  sortOrder: sortOrder.default(0),
+});
 export type CategoryCreateInput = z.output<typeof categoryCreateSchema>;
 
-export const categoryUpdateSchema = z.object(categoryFields).partial().refine(notEmpty, notEmptyMessage);
+export const categoryUpdateSchema = z.strictObject(categoryFields).partial().refine(notEmpty, notEmptyMessage);
 export type CategoryUpdateInput = z.output<typeof categoryUpdateSchema>;
 
 export const adminCategorySchema = categorySummarySchema.extend({
@@ -86,7 +101,7 @@ const variantFields = {
   sortOrder,
 };
 
-export const variantCreateSchema = z.object({
+export const variantCreateSchema = z.strictObject({
   ...variantFields,
   compareAtCents: variantFields.compareAtCents.default(null),
   stock: variantFields.stock.default(0),
@@ -96,7 +111,7 @@ export const variantCreateSchema = z.object({
 });
 export type VariantCreateInput = z.output<typeof variantCreateSchema>;
 
-export const variantUpdateSchema = z.object(variantFields).partial().refine(notEmpty, notEmptyMessage);
+export const variantUpdateSchema = z.strictObject(variantFields).partial().refine(notEmpty, notEmptyMessage);
 export type VariantUpdateInput = z.output<typeof variantUpdateSchema>;
 
 export const adminVariantSchema = z.object({
@@ -127,8 +142,9 @@ const productFields = {
   featured: z.boolean(),
 };
 
-export const productCreateSchema = z.object({
+export const productCreateSchema = z.strictObject({
   ...productFields,
+  slug: optionalSlug("reference-02"),
   subtitle: productFields.subtitle.default(null),
   description: productFields.description.default(""),
   categoryId: productFields.categoryId.default(null),
@@ -137,7 +153,7 @@ export const productCreateSchema = z.object({
 });
 export type ProductCreateInput = z.output<typeof productCreateSchema>;
 
-export const productUpdateSchema = z.object(productFields).partial().refine(notEmpty, notEmptyMessage);
+export const productUpdateSchema = z.strictObject(productFields).partial().refine(notEmpty, notEmptyMessage);
 export type ProductUpdateInput = z.output<typeof productUpdateSchema>;
 
 export const adminProductListQuerySchema = paginationQuerySchema.extend({

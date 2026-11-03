@@ -12,6 +12,7 @@ import type {
   VariantCreateInput,
   VariantUpdateInput,
 } from "@novap/shared";
+import { slugify } from "@novap/shared";
 import { and, asc, count, desc, eq, or, sql, type SQL } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { Db } from "../db/client";
@@ -36,6 +37,18 @@ async function conflictOnUnique<T>(write: PromiseLike<T>, message: string): Prom
     throw err;
   }
 }
+
+// The slug sent, or one made from the name. A taken slug is a 409, never a silent
+// "-2" suffix: a second product with the same name is usually a mistake.
+function slugFor(input: { slug?: string; name: string }): string {
+  const slug = input.slug ?? slugify(input.name);
+  if (!slug) throw new HTTPException(400, { message: "Can't make a slug from this name; send a slug" });
+  return slug;
+}
+
+// Names the slug, since the admin may not have typed it (generated from the name).
+const slugTaken = (thing: "category" | "product", slug: string | undefined) =>
+  slug ? `A ${thing} with the slug "${slug}" already exists` : `A ${thing} with this slug already exists`;
 
 // A bad categoryId would otherwise fail the foreign key and surface as a 500.
 async function assertCategoryExists(db: Db, categoryId: number | null | undefined) {
@@ -78,17 +91,20 @@ export async function getAdminCategory(db: Db, id: number): Promise<AdminCategor
   return row && toAdminCategory(row);
 }
 
-const categorySlugTaken = "A category with this slug already exists";
-
 export async function createCategory(db: Db, input: CategoryCreateInput): Promise<AdminCategory> {
-  const [row] = await conflictOnUnique(db.insert(categories).values(input).returning(), categorySlugTaken);
+  const slug = slugFor(input);
+  const [row] = await conflictOnUnique(
+    db.insert(categories).values({ ...input, slug }).returning(),
+    slugTaken("category", slug),
+  );
   return toAdminCategory({ ...row!, productCount: 0 });
 }
 
+// Renaming never changes the slug: the shop URL stays the same unless a new slug is sent.
 export async function updateCategory(db: Db, id: number, input: CategoryUpdateInput): Promise<AdminCategory | undefined> {
   const [row] = await conflictOnUnique(
     db.update(categories).set(input).where(eq(categories.id, id)).returning({ id: categories.id }),
-    categorySlugTaken,
+    slugTaken("category", input.slug),
   );
   return row && getAdminCategory(db, row.id);
 }
@@ -235,22 +251,22 @@ export async function getAdminProduct(db: Db, id: number): Promise<AdminProductD
   };
 }
 
-const productSlugTaken = "A product with this slug already exists";
-
 export async function createProduct(db: Db, input: ProductCreateInput): Promise<AdminProductDetail> {
+  const slug = slugFor(input);
   await assertCategoryExists(db, input.categoryId);
   const [row] = await conflictOnUnique(
-    db.insert(products).values(input).returning({ id: products.id }),
-    productSlugTaken,
+    db.insert(products).values({ ...input, slug }).returning({ id: products.id }),
+    slugTaken("product", slug),
   );
   return (await getAdminProduct(db, row!.id))!;
 }
 
+// Renaming never changes the slug: the shop URL stays the same unless a new slug is sent.
 export async function updateProduct(db: Db, id: number, input: ProductUpdateInput): Promise<AdminProductDetail | undefined> {
   await assertCategoryExists(db, input.categoryId);
   const [row] = await conflictOnUnique(
     db.update(products).set(input).where(eq(products.id, id)).returning({ id: products.id }),
-    productSlugTaken,
+    slugTaken("product", input.slug),
   );
   return row && getAdminProduct(db, row.id);
 }

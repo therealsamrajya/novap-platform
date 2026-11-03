@@ -46,7 +46,7 @@ const create = createRoute({
   method: "post",
   path: "/",
   summary: "Create a category",
-  description: "`slug` is lowercased. 409 if the slug is taken.",
+  description: "`slug` is optional: left out, it is made from the name (\"Limited Run\" -> `limited-run`). 409 if the slug is taken.",
   request: { body: { content: { "application/json": { schema: CategoryCreate } }, required: true } },
   responses: {
     201: json(AdminCategory, "Created"),
