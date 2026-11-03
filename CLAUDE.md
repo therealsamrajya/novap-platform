@@ -48,7 +48,7 @@ apps/api/src/
   index.ts            app (OpenAPIHono), global middleware, route mounting, OpenAPI doc + Swagger UI, exports AppEnv
   routes/<name>.ts    one createRouter() per resource, routes declared with createRoute; thin: validated input -> service -> JSON
   routes/stripe.ts    Stripe webhook (signature-verified, no session)
-  routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, contact)
+  routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, orders, contact)
   services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports (admin ones: admin-*.ts)
   lib/                small helpers (pagination, sql, images, stripe client, ...)
   middleware/         error handler; auth.ts (loadSession, requireAuth, requireAdmin, currentUser, cookie helpers)
@@ -72,6 +72,10 @@ apps/api/src/
   share names (`id`, `slug`, `name`), alias them with ``sql`${t.col}`.as("t_col")``. D1 merges result
   columns with the same name, so values silently shift into the wrong fields. This happens in plain
   `select().from().leftJoin()` too, not only in subqueries. See `services/catalog.ts`, `services/admin-catalog.ts`.
+- **No correlated subqueries in single-table selects**: there Drizzle renders columns unqualified (`"id"`, not
+  `"orders"."id"`), so `order_id = ${orders.id}` inside a subquery silently compares the inner table with itself.
+  Use a second grouped query over the page's ids instead (`itemCounts` in `services/admin-orders.ts`). `UPDATE`
+  statements do qualify columns, so the subquery in `cancelPendingOrder` is fine.
 - **Lists**: extend `paginationQuerySchema`, return `paginated(...)` (`lib/pagination.ts`), and give the sort a stable
   tie-breaker (`id`) so pages never overlap. Text search goes through `containsText` (`lib/sql.ts`), which escapes LIKE wildcards.
 - **Money**: integer cents, AUD, GST-inclusive. Never floats. Format only in frontends (`formatAud`).

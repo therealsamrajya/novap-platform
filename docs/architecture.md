@@ -123,3 +123,5 @@ Code: `services/checkout.ts` (steps up to the session, plus `cancelPendingOrder`
 | Full refunds mark the order `refunded`; stock is not put back | A returned item may not be resellable. Partial refunds leave the order as it is; the details stay in Stripe |
 | Checkout status endpoint returns no email or address | The session id travels in a URL (browser history, referrers), so it should only show what was bought |
 | Missed `expired` webhooks leave stock held (known gap) | If the webhook is down when a session expires, the order stays `pending`. A scheduled clean-up is planned for phase 9 |
+| Admins can only ship orders (`paid` → `fulfilled` + tracking number) | Payment, cancellation and refunds must match what Stripe did, so only the webhook changes them. A refund made in the Stripe dashboard reaches the order through `charge.refunded` |
+| Admin order list hides `pending` by default | Pending orders are mostly abandoned checkouts. Hiding them keeps the orders that need shipping on top; `?status=pending` still shows them |

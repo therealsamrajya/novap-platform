@@ -128,7 +128,7 @@ curl -s -X POST http://localhost:8787/api/checkout -H "Content-Type: application
 ### Admin
 
 All admin routes live under `/api/admin/*` and are grouped in Swagger as **Admin · Categories / Products /
-Variants / Images / Contact inbox**.
+Variants / Images / Orders / Contact inbox**.
 
 - Resources are addressed by numeric `id` (`/api/admin/products/2`), not by slug.
 - **Strict input**: create and update bodies reject unknown keys with a 400 (`Unrecognized key: "productCount"`),
@@ -140,4 +140,9 @@ Variants / Images / Contact inbox**.
   set `active: false` (products, variants) or `status: "archived"` (contact messages).
 - **Images**: `POST /api/admin/products/{id}/images` as `multipart/form-data` with `file` and optional `alt`.
   JPEG, PNG, WebP or AVIF (checked from the file's bytes), max 5 MB, max 20 per product.
+- **Orders**: `GET /api/admin/orders` hides `pending` (unpaid) checkouts unless you ask for `?status=pending`;
+  `?status=paid` is the "to ship" list. `?q=` matches the email, or the order number (`12` or `#12`).
+  The only manual change is shipping: `PATCH /api/admin/orders/{id}` with `{ "status": "fulfilled", "trackingNumber": "..." }`,
+  allowed on `paid` and `fulfilled` orders (409 otherwise). Refunds are made in the Stripe dashboard; the webhook then marks
+  the order `refunded`.
 - Body-less requests (DELETE) and uploads from curl need `-H "Origin: http://localhost:5174"`; browsers send it.

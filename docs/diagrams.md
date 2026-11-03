@@ -367,6 +367,9 @@ classDiagram
     class adminImagesRoute {
         <<route /api/admin/images>>
     }
+    class adminOrdersRoute {
+        <<route /api/admin/orders>>
+    }
     class adminContactRoute {
         <<route /api/admin/contact>>
     }
@@ -428,6 +431,12 @@ classDiagram
         uploadProductImage(db, bucket, productId, input) AdminProductImage?
         updateProductImage(db, id, input) AdminProductImage?
         deleteProductImage(db, bucket, id) boolean
+    }
+    class adminOrdersService {
+        <<services/admin-orders.ts>>
+        listOrders(db, query) Paginated~AdminOrderSummary~
+        getOrder(db, id) AdminOrder?
+        updateOrder(db, id, input) AdminOrder?
     }
     class adminContactService {
         <<services/admin-contact.ts>>
@@ -510,6 +519,7 @@ classDiagram
     App --> adminProductsRoute
     App --> adminVariantsRoute
     App --> adminImagesRoute
+    App --> adminOrdersRoute
     App --> adminContactRoute
     App --> authMiddleware
     App --> errorMiddleware
@@ -532,6 +542,7 @@ classDiagram
     adminProductsRoute --> adminImagesService
     adminVariantsRoute --> adminCatalogService
     adminImagesRoute --> adminImagesService
+    adminOrdersRoute --> adminOrdersService
     adminContactRoute --> adminContactService
     adminCatalogService --> R2
     adminImagesService --> R2
@@ -548,6 +559,7 @@ classDiagram
     adminProductsRoute ..> openapiLib
     adminVariantsRoute ..> openapiLib
     adminImagesRoute ..> openapiLib
+    adminOrdersRoute ..> openapiLib
     adminContactRoute ..> openapiLib
     openapiLib ..> shared
 
@@ -563,6 +575,8 @@ classDiagram
     adminCatalogService ..> sqlLib
     adminCatalogService ..> imagesLib
     adminImagesService ..> imagesLib
+    adminOrdersService ..> paginationLib
+    adminOrdersService ..> sqlLib
     adminContactService ..> paginationLib
     adminContactService ..> sqlLib
 
@@ -573,6 +587,7 @@ classDiagram
     stripeWebhookService --> Db
     adminCatalogService --> Db
     adminImagesService --> Db
+    adminOrdersService --> Db
     adminContactService --> Db
     Db --> schema
 ```

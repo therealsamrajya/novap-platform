@@ -412,6 +412,9 @@ classDiagram
     class adminImagesRoute {
         &lt;&lt;route /api/admin/images&gt;&gt;
     }
+    class adminOrdersRoute {
+        &lt;&lt;route /api/admin/orders&gt;&gt;
+    }
     class adminContactRoute {
         &lt;&lt;route /api/admin/contact&gt;&gt;
     }
@@ -473,6 +476,12 @@ classDiagram
         uploadProductImage(db, bucket, productId, input) AdminProductImage?
         updateProductImage(db, id, input) AdminProductImage?
         deleteProductImage(db, bucket, id) boolean
+    }
+    class adminOrdersService {
+        &lt;&lt;services/admin-orders.ts&gt;&gt;
+        listOrders(db, query) Paginated~AdminOrderSummary~
+        getOrder(db, id) AdminOrder?
+        updateOrder(db, id, input) AdminOrder?
     }
     class adminContactService {
         &lt;&lt;services/admin-contact.ts&gt;&gt;
@@ -555,6 +564,7 @@ classDiagram
     App --&gt; adminProductsRoute
     App --&gt; adminVariantsRoute
     App --&gt; adminImagesRoute
+    App --&gt; adminOrdersRoute
     App --&gt; adminContactRoute
     App --&gt; authMiddleware
     App --&gt; errorMiddleware
@@ -577,6 +587,7 @@ classDiagram
     adminProductsRoute --&gt; adminImagesService
     adminVariantsRoute --&gt; adminCatalogService
     adminImagesRoute --&gt; adminImagesService
+    adminOrdersRoute --&gt; adminOrdersService
     adminContactRoute --&gt; adminContactService
     adminCatalogService --&gt; R2
     adminImagesService --&gt; R2
@@ -593,6 +604,7 @@ classDiagram
     adminProductsRoute ..&gt; openapiLib
     adminVariantsRoute ..&gt; openapiLib
     adminImagesRoute ..&gt; openapiLib
+    adminOrdersRoute ..&gt; openapiLib
     adminContactRoute ..&gt; openapiLib
     openapiLib ..&gt; shared
 
@@ -608,6 +620,8 @@ classDiagram
     adminCatalogService ..&gt; sqlLib
     adminCatalogService ..&gt; imagesLib
     adminImagesService ..&gt; imagesLib
+    adminOrdersService ..&gt; paginationLib
+    adminOrdersService ..&gt; sqlLib
     adminContactService ..&gt; paginationLib
     adminContactService ..&gt; sqlLib
 
@@ -618,6 +632,7 @@ classDiagram
     stripeWebhookService --&gt; Db
     adminCatalogService --&gt; Db
     adminImagesService --&gt; Db
+    adminOrdersService --&gt; Db
     adminContactService --&gt; Db
     Db --&gt; schema
 </pre>
