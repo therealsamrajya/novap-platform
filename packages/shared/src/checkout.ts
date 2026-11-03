@@ -47,6 +47,18 @@ export const orderLineSchema = z.object({
 });
 export type OrderLine = z.infer<typeof orderLineSchema>;
 
+// Collected by Stripe Checkout and copied onto the order when it is paid.
+export const shippingAddressSchema = z.object({
+  name: z.string().meta({ example: "Test Customer" }),
+  line1: z.string().meta({ example: "1 Test Street" }),
+  line2: z.string().nullable().optional(),
+  city: z.string().meta({ example: "Sydney" }),
+  state: z.string().meta({ example: "NSW" }),
+  postcode: z.string().meta({ example: "2000" }),
+  country: z.string().meta({ example: "AU" }),
+  phone: z.string().nullable().optional().meta({ example: "+61400000000" }),
+});
+
 // What the shop's success page shows after Stripe redirects back. No address or
 // email: the session id travels in a URL, so it only reveals what was bought.
 export const checkoutSessionStatusSchema = z.object({

@@ -16,6 +16,7 @@ import { adminImagesRoute } from "./routes/admin/images";
 import { adminOrdersRoute } from "./routes/admin/orders";
 import { adminProductsRoute } from "./routes/admin/products";
 import { adminVariantsRoute } from "./routes/admin/variants";
+import { accountRoute } from "./routes/account";
 import { authRoute } from "./routes/auth";
 import { categoriesRoute } from "./routes/categories";
 import { checkoutRoute } from "./routes/checkout";
@@ -56,6 +57,7 @@ app.use("/api/admin/*", requireAdmin);
 
 app.route("/api/health", healthRoute);
 app.route("/api/auth", authRoute);
+app.route("/api/account", accountRoute);
 app.route("/api/categories", categoriesRoute);
 app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
@@ -98,7 +100,8 @@ app.doc31("/api/openapi.json", {
       "`issues` only on 400. Lists return `{ items, page, limit, total }`.",
   },
   tags: [
-    { name: "Auth", description: "Register, log in, log out, current user" },
+    { name: "Auth", description: "Register, log in, log out, current user, password reset, email confirmation" },
+    { name: "Account", description: "The logged-in customer's own data: order history" },
     { name: "Catalog", description: "Public products, categories and images" },
     { name: "Contact", description: "Public contact form" },
     { name: "Checkout", description: "Guest and customer checkout through Stripe" },

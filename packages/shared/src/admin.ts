@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { paginationQuerySchema } from "./api";
 import { categorySummarySchema, productImageSchema } from "./catalog";
-import { orderLineSchema, orderStatusSchema } from "./checkout";
+import { orderLineSchema, orderStatusSchema, shippingAddressSchema } from "./checkout";
 import { SLUG_MAX, SLUG_PATTERN } from "./slug";
 import { booleanParam, optionalText, required } from "./validation";
 
@@ -284,17 +284,6 @@ export const adminOrderSummarySchema = z.object({
   paidAt: z.iso.datetime().nullable(),
 });
 export type AdminOrderSummary = z.infer<typeof adminOrderSummarySchema>;
-
-export const shippingAddressSchema = z.object({
-  name: z.string().meta({ example: "Test Customer" }),
-  line1: z.string().meta({ example: "1 Test Street" }),
-  line2: z.string().nullable().optional(),
-  city: z.string().meta({ example: "Sydney" }),
-  state: z.string().meta({ example: "NSW" }),
-  postcode: z.string().meta({ example: "2000" }),
-  country: z.string().meta({ example: "AU" }),
-  phone: z.string().nullable().optional().meta({ example: "+61400000000" }),
-});
 
 export const adminOrderSchema = adminOrderSummarySchema.extend({
   currency: z.string().meta({ example: "aud" }),

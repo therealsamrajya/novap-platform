@@ -50,7 +50,9 @@ apps/api/src/
   routes/stripe.ts    Stripe webhook (signature-verified, no session)
   routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, orders, contact)
   services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports (admin ones: admin-*.ts)
-  lib/                small helpers (pagination, sql, images, stripe client, ...)
+  services/notifications.ts  load data + send emails; catches and logs its own errors
+  emails/             email templates: functions returning { to, subject, text, html }
+  lib/                small helpers (pagination, sql, images, stripe client, email/mailer, ...)
   middleware/         error handler; auth.ts (loadSession, requireAuth, requireAdmin, currentUser, cookie helpers)
   db/schema.ts        Drizzle tables + relations (single file)
   db/migrations/      generated SQL; never hand-edit merged ones
@@ -85,6 +87,10 @@ apps/api/src/
   Release stock only through `cancelPendingOrder` (restock + cancel in one batch). Only the webhook sets `paid`.
 - **Stripe**: `getStripe(c.env)` from `lib/stripe.ts`. Services take the client as a parameter, like `db`.
   Webhook handlers live in `services/stripe-webhook.ts`; record the event in `stripe_events` only after it succeeds.
+- **Emails**: `getMailer(c.env)` from `lib/email.ts`; services take the `Mailer` as a parameter, like `db` and Stripe.
+  Send from the route with `c.executionCtx.waitUntil(...)` so the response never waits on (or fails because of) an email.
+  Templates in `emails/` always give both `text` and `html`, and pass user text through `escapeHtml`.
+  With `RESEND_API_KEY` empty, local dev prints emails to the `pnpm dev:api` console.
 - **Public catalog** returns only `active` products and `active` variants.
 - **Timestamps**: Drizzle `mode: "timestamp"` gives a JS `Date`, serialized as an ISO string in JSON.
 - **Typing**: `new Hono<AppEnv>()` in every route file. `Env` comes from generated `worker-configuration.d.ts`.
@@ -107,6 +113,10 @@ apps/api/src/
   instead of checking first (a check-then-write races).
 - Owner checks (e.g. "your own order") return 404, so other users' ids aren't confirmed to exist.
 - Never return a raw `users` row. Map it with `toUser` (`services/auth.ts`) so `passwordHash` can't leak.
+- Emailed tokens (password reset, email verification) follow the session scheme: random token in the link, only
+  `sha256(token)` in the DB, a new one voids older ones, and use claims it in one conditional statement
+  (`UPDATE ... WHERE used_at IS NULL` / `DELETE ... RETURNING`) so a link can't be used twice.
+- Guest orders count as the user's only when `user.emailVerified` (`ownedBy` in `services/account.ts`).
 - Dev logins (seed): `admin@novap.local` / `novap-admin-dev`, `customer@novap.local` / `novap-customer-dev`.
   For curl, use a cookie jar (`-c`/`-b`). A body-less POST also needs `-H "Origin: http://localhost:5173"`.
 

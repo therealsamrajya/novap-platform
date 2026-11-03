@@ -1,8 +1,10 @@
 import { createRoute, z } from "@hono/zod-openapi";
 import { HTTPException } from "hono/http-exception";
 import { getDb } from "../db/client";
+import { getMailer } from "../lib/email";
 import { createRouter, errors, json } from "../lib/openapi";
 import { getStripe } from "../lib/stripe";
+import { sendOrderConfirmation } from "../services/notifications";
 import { handleStripeEvent } from "../services/stripe-webhook";
 
 // POST /api/stripe/webhook — events from Stripe (payment completed, session expired, refund)
@@ -16,7 +18,8 @@ const webhook = createRoute({
   description:
     "Only Stripe calls this. Verifies the `Stripe-Signature` header against `STRIPE_WEBHOOK_SECRET`. " +
     "Handles `checkout.session.completed` (order paid), `checkout.session.expired` (order cancelled, stock released) " +
-    "and `charge.refunded` (full refund). Repeated events are ignored. Locally: " +
+    "and `charge.refunded` (full refund). A newly paid order gets a confirmation email, sent after the response. " +
+    "Repeated events are ignored. Locally: " +
     "`stripe listen --events checkout.session.completed,checkout.session.expired,charge.refunded --forward-to localhost:8787/api/stripe/webhook`.",
   request: {
     headers: z.object({
@@ -44,6 +47,9 @@ export const stripeRoute = createRouter().openapi(webhook, async (c) => {
     throw new HTTPException(400, { message: "Invalid Stripe signature" });
   }
   // A thrown error becomes a 500, and Stripe retries the event later.
-  await handleStripeEvent(getDb(c.env.DB), event);
+  const db = getDb(c.env.DB);
+  const { paidOrderId } = await handleStripeEvent(db, event);
+  // After the response: Stripe gets its 200 fast, and a failed email can't trigger a retry.
+  if (paidOrderId) c.executionCtx.waitUntil(sendOrderConfirmation(db, getMailer(c.env), paidOrderId));
   return c.json({ received: true as const }, 200);
 });

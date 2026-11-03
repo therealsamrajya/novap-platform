@@ -25,6 +25,9 @@ export const users = sqliteTable("users", {
   passwordHash: text("password_hash").notNull(),
   name: text("name").notNull(),
   role: text("role", { enum: ["customer", "admin"] }).notNull().default("customer"),
+  // Set when the user proves they own the email (verification link or password reset).
+  // Guest orders placed with this email show up in the account only after that.
+  emailVerifiedAt: integer("email_verified_at", { mode: "timestamp" }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 });
@@ -42,6 +45,38 @@ export const sessions = sqliteTable(
     createdAt: createdAt(),
   },
   (t) => [index("sessions_user_idx").on(t.userId)],
+);
+
+// One-time password reset links. Like sessions, only sha256(token) is stored, so the
+// table alone can't be used to reset anyone's password. A token is single-use (usedAt)
+// and short-lived (expiresAt).
+export const passwordResetTokens = sqliteTable(
+  "password_reset_tokens",
+  {
+    id: text("id").primaryKey(), // sha256(token)
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    usedAt: integer("used_at", { mode: "timestamp" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("password_reset_tokens_user_idx").on(t.userId)],
+);
+
+// Email verification links, same scheme as password resets. No usedAt: a token is
+// deleted when used, since a used verification link has nothing left to protect.
+export const emailVerificationTokens = sqliteTable(
+  "email_verification_tokens",
+  {
+    id: text("id").primaryKey(), // sha256(token)
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("email_verification_tokens_user_idx").on(t.userId)],
 );
 
 export const addresses = sqliteTable(
@@ -227,12 +262,22 @@ export const contactMessages = sqliteTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
+  passwordResetTokens: many(passwordResetTokens),
+  emailVerificationTokens: many(emailVerificationTokens),
   addresses: many(addresses),
   orders: many(orders),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, { fields: [passwordResetTokens.userId], references: [users.id] }),
+}));
+
+export const emailVerificationTokensRelations = relations(emailVerificationTokens, ({ one }) => ({
+  user: one(users, { fields: [emailVerificationTokens.userId], references: [users.id] }),
 }));
 
 export const addressesRelations = relations(addresses, ({ one }) => ({

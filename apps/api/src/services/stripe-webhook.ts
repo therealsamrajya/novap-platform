@@ -10,13 +10,17 @@ import { cancelPendingOrder } from "./checkout";
 // failure. So every handler is idempotent on its own: it only changes an order that
 // is still in the expected status. stripe_events is recorded only after success,
 // so a failed attempt is retried by Stripe instead of being skipped as a duplicate.
-export async function handleStripeEvent(db: Db, event: Stripe.Event): Promise<void> {
+//
+// Returns the id of an order this event moved to `paid` (null otherwise), so the route
+// sends the confirmation email exactly once: a duplicate event finds the order already paid.
+export async function handleStripeEvent(db: Db, event: Stripe.Event): Promise<{ paidOrderId: number | null }> {
+  let paidOrderId: number | null = null;
   const seen = await db.query.stripeEvents.findFirst({ columns: { id: true }, where: eq(stripeEvents.id, event.id) });
-  if (seen) return;
+  if (seen) return { paidOrderId };
 
   switch (event.type) {
     case "checkout.session.completed":
-      await markPaid(db, event.data.object);
+      paidOrderId = await markPaid(db, event.data.object);
       break;
     case "checkout.session.expired":
       await expire(db, event.data.object);
@@ -28,12 +32,14 @@ export async function handleStripeEvent(db: Db, event: Stripe.Event): Promise<vo
   }
 
   await db.insert(stripeEvents).values({ id: event.id, type: event.type }).onConflictDoNothing();
+  return { paidOrderId };
 }
 
-async function markPaid(db: Db, session: Stripe.Checkout.Session) {
+// Returns the order id when this call changed it from pending to paid.
+async function markPaid(db: Db, session: Stripe.Checkout.Session): Promise<number | null> {
   // Cards only (services/checkout.ts), so a completed session is always paid.
   // Guard anyway: a delayed method would arrive here as "unpaid".
-  if (session.payment_status !== "paid") return;
+  if (session.payment_status !== "paid") return null;
 
   const [paid] = await db
     .update(orders)
@@ -56,7 +62,9 @@ async function markPaid(db: Db, session: Stripe.Checkout.Session) {
     if (order?.status !== "paid") {
       console.error(`Stripe session ${session.id} paid, but order is ${order ? `#${order.id} ${order.status}` : "missing"}`);
     }
+    return null;
   }
+  return paid.id;
 }
 
 async function expire(db: Db, session: Stripe.Checkout.Session) {

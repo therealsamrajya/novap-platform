@@ -17,7 +17,8 @@ const iso = (d: Date | null) => d?.toISOString() ?? null;
 // Total quantity per order, for one page of orders. A separate grouped query rather than a
 // correlated subquery: in a single-table select Drizzle leaves column names unqualified, so
 // "order_id = id" inside the subquery would compare order_items with itself.
-async function itemCounts(db: Db, orderIds: number[]): Promise<Map<number, number>> {
+// Also used by the customer's order history (services/account.ts).
+export async function itemCounts(db: Db, orderIds: number[]): Promise<Map<number, number>> {
   if (orderIds.length === 0) return new Map();
   const rows = await db
     .select({ orderId: orderItems.orderId, quantity: sql<number>`sum(${orderItems.quantity})`.mapWith(Number) })
