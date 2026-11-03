@@ -15,7 +15,10 @@
   "vars": {
     "APP_ENV": "development",
     "SHOP_URL": "http://localhost:5173",
-    "ADMIN_URL": "http://localhost:5174"
+    "ADMIN_URL": "http://localhost:5174",
+    // Shipping in cents (AUD, GST-inclusive): flat rate, free from the threshold up.
+    "SHIPPING_FLAT_CENTS": "995",
+    "FREE_SHIPPING_FROM_CENTS": "15000"
   },
 
   "d1_databases": [

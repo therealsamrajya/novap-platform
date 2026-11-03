@@ -17,6 +17,7 @@ import { adminProductsRoute } from "./routes/admin/products";
 import { adminVariantsRoute } from "./routes/admin/variants";
 import { authRoute } from "./routes/auth";
 import { categoriesRoute } from "./routes/categories";
+import { checkoutRoute } from "./routes/checkout";
 import { contactRoute } from "./routes/contact";
 import { healthRoute } from "./routes/health";
 import { imagesRoute } from "./routes/images";
@@ -57,6 +58,7 @@ app.route("/api/categories", categoriesRoute);
 app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
 app.route("/api/contact", contactRoute);
+app.route("/api/checkout", checkoutRoute);
 
 app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/products", adminProductsRoute);
@@ -95,6 +97,7 @@ app.doc31("/api/openapi.json", {
     { name: "Auth", description: "Register, log in, log out, current user" },
     { name: "Catalog", description: "Public products, categories and images" },
     { name: "Contact", description: "Public contact form" },
+    { name: "Checkout", description: "Guest and customer checkout through Stripe" },
     // Admin sections need an admin session: 401 not logged in, 403 not an admin.
     { name: adminTags.categories, description: "Create, edit and delete categories. Admin only" },
     { name: adminTags.products, description: "All products, including inactive ones. Admin only" },

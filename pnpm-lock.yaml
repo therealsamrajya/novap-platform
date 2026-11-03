@@ -29,6 +29,9 @@ importers:
       hono:
         specifier: ^4.13.14
         version: 4.13.14
+      stripe:
+        specifier: ^23.1.0
+        version: 23.1.0
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -951,6 +954,15 @@ packages:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
 
+  stripe@23.1.0:
+    resolution: {integrity: sha512-fVUfMSfTPoukfoV//MUKAx2+YxyKmYaYtnAL9VkfnHfaPNQylFdWZMD+zgUFerI8rjbaiER8Vzj2XEUQ2AhAsQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      '@types/node': '>=20'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   supports-color@10.2.2:
     resolution: {integrity: sha512-SS+jx45GF1QjgEXQx4NJZV9ImqmO2NPz5FNsIHrsDjh2YsHnawpan7SNQ1o8NuhrbHZy9AZhIoCUiCeaW/C80g==}
     engines: {node: '>=18'}
@@ -1613,6 +1625,8 @@ snapshots:
       source-map: 0.6.1
 
   source-map@0.6.1: {}
+
+  stripe@23.1.0: {}
 
   supports-color@10.2.2: {}
 
