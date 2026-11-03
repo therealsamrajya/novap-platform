@@ -30,3 +30,9 @@ INSERT INTO variants (product_id, sku, label, price_cents, compare_at_cents, sto
   (3, 'REF03-S', 'Small', 3995, NULL, 15, '{"size":"small"}', 1),
   (4, 'REF04-S', 'Small', 6995, NULL, 8, '{"size":"small"}', 1),
   (5, 'CASE-BLK', 'Standard', 2495, NULL, 50, '{"colour":"black"}', 1);
+
+-- Contact inbox: one message per status. Times are offsets from now so "newest first" is predictable.
+INSERT INTO contact_messages (name, email, subject, message, status, created_at) VALUES
+  ('Alex Citizen', 'alex@example.com', 'Question about Reference 02', 'Hi, is the Large size coming back in stock soon?', 'new', unixepoch() - 3600),
+  ('Sam Lee', 'sam@example.com', 'Shipping to Perth', 'How long does delivery to WA usually take?', 'read', unixepoch() - 86400),
+  ('Jo Park', 'jo@example.com', 'Order arrived', 'Just letting you know my order arrived safely. Thanks!', 'archived', unixepoch() - 172800);

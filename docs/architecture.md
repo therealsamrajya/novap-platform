@@ -23,7 +23,7 @@ request
   → secureHeaders, CORS (index.ts)
   → csrf (blocks cross-site form posts), loadSession (sets c.var.user from the cookie, or null)
   → requireAdmin on /api/admin/*
-  → route  (routes/*.ts)     parse + validate input with @novap/shared schemas
+  → route  (routes/*.ts, routes/admin/*.ts)  parse + validate input with @novap/shared schemas
   → service (services/*.ts)  Drizzle queries, business rules
   → JSON response
 errors anywhere → middleware/error.ts → { error, issues? }
@@ -38,7 +38,7 @@ errors anywhere → middleware/error.ts → { error, issues? }
 | Lib | `src/lib/` | no | Small pure helpers |
 | Schema | `packages/shared` | no | Input validation and shared types |
 
-Services stay free of Hono, so later phases (webhooks, admin) can reuse them, and they can be unit-tested without HTTP.
+Services stay free of Hono, so other routes and later phases (e.g. the Stripe webhook) can reuse them. and they can be unit-tested without HTTP.
 
 ## Data model (summary)
 
@@ -66,7 +66,12 @@ The full definitions, with comments, are in `apps/api/src/db/schema.ts`. For ER 
 | Guest and user orders in one table | The only difference is whether `user_id` is null |
 | Order items snapshot the product data | Order history stays correct after a product is edited or deleted |
 | D1 `batch()` instead of transactions | D1 has no interactive transactions; a batch is atomic |
-| Images served by the Worker at `/api/images/<key>`, cached forever | No public bucket is needed yet. Upload code (phase 5) must give every upload a new key, never overwrite one. Phase 9 may move images to an R2 custom domain |
+| Images served by the Worker at `/api/images/<key>`, cached forever | No public bucket is needed yet. Every upload gets a new key (`products/<id>/<uuid>.<ext>`), never overwriting one, so the forever-cache is safe. Phase 9 may move images to an R2 custom domain |
+| Upload type read from the file's bytes; JPEG/PNG/WebP/AVIF only, no SVG | The browser's Content-Type is only a claim. SVG can carry scripts, so serving uploaded SVGs would be an XSS risk |
+| On delete, the D1 row goes first, the R2 file second | If R2 fails, the worst case is an unused file, never a product pointing at a missing image |
+| Admin input is strict (unknown keys are a 400) | A typo or a read-only field like `productCount` fails loudly instead of being silently dropped |
+| Slugs generated from the name when left out; a taken slug is a 409, never a `-2` suffix | Less typing for admins. A second product with the same name is usually a mistake, and a silent suffix would hide it. Renames keep the slug, so shop URLs stay stable |
+| Admin deletes are permanent; `active: false` / `archived` hide instead | Order items snapshot the product data, so deleting can't break order history |
 | Public catalog hides products with no active variant | A product without a buyable variant can't be sold, so the list, the detail page and category counts all agree |
 | API docs generated from code: OpenAPI (`@hono/zod-openapi`) and Swagger UI at `/api/docs` | The zod schemas that validate requests also produce the docs, so the docs can't drift from the code. Shared schemas stay plain zod (`.meta()`), so the frontends don't depend on Hono |
 | Product search uses `LIKE`, not FTS5 | The catalog is small, so a full scan is cheap. It stays in Drizzle with no hand-written SQL. Search lives in one service function, so it can switch to FTS5 later without changing the API |

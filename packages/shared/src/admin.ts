@@ -234,3 +234,30 @@ export const imageUpdateSchema = z
   .partial()
   .refine(notEmpty, notEmptyMessage);
 export type ImageUpdateInput = z.output<typeof imageUpdateSchema>;
+
+// ---------------------------------------------------------------- contact inbox
+
+// new = not opened yet, read = opened, archived = dealt with (hidden from the default view).
+export const contactStatusValues = ["new", "read", "archived"] as const;
+export const contactStatusSchema = z.enum(contactStatusValues);
+export type ContactStatus = z.infer<typeof contactStatusSchema>;
+
+export const adminContactListQuerySchema = paginationQuerySchema.extend({
+  status: contactStatusSchema.optional().meta({ description: "Only messages with this status. Left out: all except archived" }),
+  q: optionalText.meta({ description: "Search in name, email and subject (case-insensitive)" }),
+});
+export type AdminContactListQuery = z.output<typeof adminContactListQuerySchema>;
+
+export const adminContactMessageSchema = z.object({
+  id: z.number().int().meta({ example: 1 }),
+  name: z.string().meta({ example: "Alex Citizen" }),
+  email: z.string().meta({ example: "alex@example.com" }),
+  subject: z.string().meta({ example: "Question about Reference 02" }),
+  message: z.string(),
+  status: contactStatusSchema,
+  createdAt: z.iso.datetime(),
+});
+export type AdminContactMessage = z.infer<typeof adminContactMessageSchema>;
+
+export const contactUpdateSchema = z.strictObject({ status: contactStatusSchema });
+export type ContactUpdateInput = z.output<typeof contactUpdateSchema>;

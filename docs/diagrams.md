@@ -349,6 +349,21 @@ classDiagram
     class contactRoute {
         <<route /api/contact>>
     }
+    class adminCategoriesRoute {
+        <<route /api/admin/categories>>
+    }
+    class adminProductsRoute {
+        <<route /api/admin/products>>
+    }
+    class adminVariantsRoute {
+        <<route /api/admin/variants>>
+    }
+    class adminImagesRoute {
+        <<route /api/admin/images>>
+    }
+    class adminContactRoute {
+        <<route /api/admin/contact>>
+    }
 
     class authMiddleware {
         <<middleware/auth.ts>>
@@ -379,10 +394,30 @@ classDiagram
         getCategoryBySlug(db, slug) Category?
         listProducts(db, query) Paginated~ProductSummary~
         getProductBySlug(db, slug) ProductDetail?
+        firstImageByProduct(db, ids) Map
     }
     class contactService {
         <<services/contact.ts>>
         submitContactMessage(db, input)
+    }
+    class adminCatalogService {
+        <<services/admin-catalog.ts>>
+        categories: list, get, create, update, delete
+        products: list, get, create, update, delete
+        variants: create, update, delete
+    }
+    class adminImagesService {
+        <<services/admin-images.ts>>
+        uploadProductImage(db, bucket, productId, input) AdminProductImage?
+        updateProductImage(db, id, input) AdminProductImage?
+        deleteProductImage(db, bucket, id) boolean
+    }
+    class adminContactService {
+        <<services/admin-contact.ts>>
+        listContactMessages(db, query) Paginated~AdminContactMessage~
+        getContactMessage(db, id) AdminContactMessage?
+        updateContactMessage(db, id, input) AdminContactMessage?
+        deleteContactMessage(db, id) boolean
     }
 
     class openapiLib {
@@ -392,6 +427,8 @@ classDiagram
         errors
         cookieAuth
         slugParams(example)
+        idParams(example)
+        adminTags
     }
     class passwordLib {
         <<lib/password.ts>>
@@ -413,10 +450,12 @@ classDiagram
     class sqlLib {
         <<lib/sql.ts>>
         containsText(column, term)
+        isUniqueViolation(err) boolean
     }
     class imagesLib {
         <<lib/images.ts>>
         imageUrl(r2Key)
+        sniffImageType(bytes) type, ext
     }
 
     class Db {
@@ -441,6 +480,11 @@ classDiagram
     App --> productsRoute
     App --> imagesRoute
     App --> contactRoute
+    App --> adminCategoriesRoute
+    App --> adminProductsRoute
+    App --> adminVariantsRoute
+    App --> adminImagesRoute
+    App --> adminContactRoute
     App --> authMiddleware
     App --> errorMiddleware
 
@@ -450,6 +494,14 @@ classDiagram
     productsRoute --> catalogService
     contactRoute --> contactService
     imagesRoute --> R2
+    adminCategoriesRoute --> adminCatalogService
+    adminProductsRoute --> adminCatalogService
+    adminProductsRoute --> adminImagesService
+    adminVariantsRoute --> adminCatalogService
+    adminImagesRoute --> adminImagesService
+    adminContactRoute --> adminContactService
+    adminCatalogService --> R2
+    adminImagesService --> R2
 
     healthRoute ..> openapiLib
     authRoute ..> openapiLib
@@ -457,6 +509,11 @@ classDiagram
     productsRoute ..> openapiLib
     imagesRoute ..> openapiLib
     contactRoute ..> openapiLib
+    adminCategoriesRoute ..> openapiLib
+    adminProductsRoute ..> openapiLib
+    adminVariantsRoute ..> openapiLib
+    adminImagesRoute ..> openapiLib
+    adminContactRoute ..> openapiLib
     openapiLib ..> shared
 
     authMiddleware --> authService
@@ -466,11 +523,21 @@ classDiagram
     catalogService ..> paginationLib
     catalogService ..> sqlLib
     catalogService ..> imagesLib
+    adminCatalogService ..> catalogService
+    adminCatalogService ..> paginationLib
+    adminCatalogService ..> sqlLib
+    adminCatalogService ..> imagesLib
+    adminImagesService ..> imagesLib
+    adminContactService ..> paginationLib
+    adminContactService ..> sqlLib
 
     authService --> Db
     catalogService --> Db
     contactService --> Db
+    adminCatalogService --> Db
+    adminImagesService --> Db
+    adminContactService --> Db
     Db --> schema
 ```
 
-Rule of thumb: arrows only point down (route → service → Db). Services never import from `routes/` or Hono, so later phases (webhooks, admin) can reuse them.
+Rule of thumb: arrows only point down (route → service → Db). Services never import from `routes/` or Hono, so other routes and later phases (e.g. the Stripe webhook) can reuse them.

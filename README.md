@@ -36,7 +36,7 @@ pnpm dev:api          # http://localhost:8787/api/health
 | `pnpm --filter @novap/api types` | Regenerate `Env` types after editing `wrangler.jsonc` |
 | `pnpm --filter @novap/api db:generate` | Create a new SQL migration after editing `src/db/schema.ts` |
 | `pnpm --filter @novap/api db:migrate:local` | Apply migrations to the local database |
-| `pnpm --filter @novap/api db:reset:local` | Wipe local DB, migrate, load `seed.sql` sample data |
+| `pnpm --filter @novap/api db:reset:local` | Wipe local DB, migrate, load `seed.sql` sample data. Stop `pnpm dev:api` first |
 
 ## Database workflow
 
@@ -68,7 +68,7 @@ Never edit an old migration file — always generate a new one.
 2. [x] Database — Drizzle schema, migrations, seed data
 3. [x] Public API — products, categories, filters, pagination, contact form
 4. [x] Auth — register, login, sessions, admin role
-5. [ ] Admin API — product/variant/category CRUD, image upload to R2, contact inbox
+5. [x] Admin API — product/variant/category CRUD, image upload to R2, contact inbox
 6. [ ] Checkout — Stripe Checkout, webhook, stock, guest + user orders
 7. [ ] Emails + account — confirmations, password reset, order history, contact notifications
 8. [ ] Frontends — admin dashboard, storefront
