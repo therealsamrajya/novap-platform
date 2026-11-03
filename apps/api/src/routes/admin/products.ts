@@ -66,6 +66,7 @@ const create = createRoute({
   summary: "Create a product",
   description:
     "The product is not shown in the shop until it has an active variant. " +
+    "`slug` is optional: left out, it is made from the name (\"Café Noir\" -> `cafe-noir`). " +
     "400 if `categoryId` doesn't exist, 409 if the slug is taken.",
   request: { body: { content: { "application/json": { schema: ProductCreate } }, required: true } },
   responses: {

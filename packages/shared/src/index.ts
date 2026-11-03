@@ -9,4 +9,5 @@ export * from "./catalog";
 export * from "./contact";
 export * from "./money";
 export * from "./schemas";
+export * from "./slug";
 export * from "./validation";
