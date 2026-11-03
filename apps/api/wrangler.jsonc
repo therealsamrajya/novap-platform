@@ -18,7 +18,18 @@
     "ADMIN_URL": "http://localhost:5174",
     // Shipping in cents (AUD, GST-inclusive): flat rate, free from the threshold up.
     "SHIPPING_FLAT_CENTS": "995",
-    "FREE_SHIPPING_FROM_CENTS": "15000"
+    "FREE_SHIPPING_FROM_CENTS": "15000",
+    // Sender for all emails. onboarding@resend.dev works without a verified domain,
+    // but Resend then only delivers to the Resend account owner's own address.
+    "EMAIL_FROM": "NŌVAP <onboarding@resend.dev>",
+    // Where contact form notifications go.
+    "ADMIN_NOTIFY_EMAIL": "admin@novap.local"
+  },
+
+  // Secrets (values in .dev.vars locally, `wrangler secret put` in production).
+  // Listing them here types them on `env` and makes `wrangler dev` warn when one is missing.
+  "secrets": {
+    "required": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "RESEND_API_KEY"]
   },
 
   "d1_databases": [

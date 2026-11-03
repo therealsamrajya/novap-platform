@@ -3,11 +3,12 @@ import type { Db } from "../db/client";
 import { contactMessages } from "../db/schema";
 
 // Stores a contact form message for the admin inbox (routes/admin/contact.ts).
-// Email notification to the shop owner comes in phase 7; rate limiting in phase 9.
-export async function submitContactMessage(db: Db, input: ContactMessageInput): Promise<void> {
+// Returns false when the message was dropped, so the route doesn't email the owner about it.
+// Rate limiting comes in phase 9.
+export async function submitContactMessage(db: Db, input: ContactMessageInput): Promise<boolean> {
   // Honeypot filled: almost certainly a bot. Drop it silently so the bot
   // can't tell it was caught.
-  if (input.website) return;
+  if (input.website) return false;
 
   await db.insert(contactMessages).values({
     name: input.name,
@@ -15,4 +16,5 @@ export async function submitContactMessage(db: Db, input: ContactMessageInput): 
     subject: input.subject,
     message: input.message,
   });
+  return true;
 }
