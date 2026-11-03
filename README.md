@@ -8,7 +8,7 @@ The old static site (`novap-website-v6-3d-vials`) is used as a UI reference only
 ```
 apps/
   api/        Cloudflare Worker — Hono API, D1 database, R2 images, Stripe
-  shop/       customer storefront            (phase 8)
+  shop/       customer storefront (React + Vite)
   admin/      admin dashboard (React + Vite)
 packages/
   shared/     zod schemas + types shared by all apps
@@ -25,6 +25,7 @@ packages/
 pnpm install
 cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev:api          # http://localhost:8787/api/health
+pnpm dev:shop         # http://localhost:5173
 pnpm dev:admin        # http://localhost:5174 (log in as admin@novap.local / novap-admin-dev)
 ```
 
@@ -36,6 +37,7 @@ See [docs/api.md](docs/api.md#checkout).
 | Command | What it does |
 |---|---|
 | `pnpm dev:api` | Run the API locally (D1 + R2 simulated in `apps/api/.wrangler/`). Swagger UI: http://localhost:8787/api/docs |
+| `pnpm dev:shop` | Run the storefront at http://localhost:5173 (needs `pnpm dev:api` running) |
 | `pnpm dev:admin` | Run the admin dashboard at http://localhost:5174 (needs `pnpm dev:api` running) |
 | `pnpm typecheck` | Type-check every package |
 | `pnpm --filter @novap/api types` | Regenerate `Env` types after editing `wrangler.jsonc` |
@@ -76,5 +78,5 @@ Never edit an old migration file — always generate a new one.
 5. [x] Admin API — product/variant/category CRUD, image upload to R2, contact inbox
 6. [x] Checkout — Stripe Checkout, webhook, stock, guest + user orders
 7. [x] Emails + account — confirmations, password reset, order history, contact notifications
-8. [ ] Frontends — admin dashboard, storefront
+8. [x] Frontends — admin dashboard, storefront
 9. [ ] Hardening + deploy — rate limits, logging, environments, domain

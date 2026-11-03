@@ -3,7 +3,7 @@
 ## Overview
 
 ```
- shop (phase 8) ─┐                     ┌─ D1  (SQLite: catalog, users, orders)
+ shop           ─┐                     ┌─ D1  (SQLite: catalog, users, orders)
                  ├─ HTTPS ─► API Worker┤
 admin           ─┘   (CORS + cookie)   ├─ R2  (product images)
                                        ├─ Stripe (Checkout + webhook)
@@ -152,6 +152,8 @@ HTML version, and user text is escaped with `escapeHtml`. `services/notification
 | Guest orders join the account history only after the email is confirmed | Matching by email alone would let anyone register with someone else's address and read their orders and shipping address. Orders placed while logged in show without confirmation |
 | Product images send `Cross-Origin-Resource-Policy: same-site`; everything else keeps `same-origin` | `secureHeaders()` defaults to `same-origin`, which blocks the shop and admin (other origins on the same site) from showing images in `<img>`. `same-site` still keeps other websites from embedding them |
 | Frontends are React + Vite SPAs calling the API with `fetch(..., { credentials: "include" })` | Static files deploy anywhere and talk to the one API. The admin needs no SEO. Forms validate with the same `@novap/shared` schemas the API uses, and server errors come back in the same `{ error, issues }` shape, so both map onto the same fields |
+| Shop cart in `localStorage`, holding only variant ids, quantities and the product slug | No account or server state is needed to shop. Names, prices and availability are read fresh from the API on the cart page, so a stale cart can't show an old price, and checkout re-reads prices anyway |
+| The cart is cleared on the checkout success page, not when checkout starts | Stripe only redirects to the success page after payment. Cancelling on Stripe brings the buyer back to a full cart |
 | Unconfirmed accounts can still log in and buy | Confirmation only guards access to guest orders. Blocking login would cost sales for no security gain |
 | A password reset also confirms the email | The reset link reached the inbox, which is the same proof a confirmation link gives |
 | Order history shows only paid, fulfilled and refunded orders | Pending and cancelled orders are unfinished or expired checkouts, not purchases |

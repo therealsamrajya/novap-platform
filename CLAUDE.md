@@ -8,9 +8,9 @@ Guide for Claude Code working in this repo. Human docs: [README.md](README.md),
 NŌVAP e-commerce platform. pnpm monorepo on Cloudflare:
 
 - `apps/api` — Cloudflare Worker, Hono 4, Drizzle ORM on D1 (SQLite), R2 for images, Stripe Checkout + webhook
-- `packages/shared` (`@novap/shared`) — zod 4 schemas, inferred types, money helpers. Imported by api and admin (shop later)
+- `packages/shared` (`@novap/shared`) — zod 4 schemas, inferred types, money helpers. Imported by api, admin and shop
 - `apps/admin` — admin dashboard, React + Vite SPA (see "Code layout (admin)")
-- `apps/shop` — not created yet (phase 8)
+- `apps/shop` — storefront, React + Vite SPA (see "Code layout (shop)")
 
 The old static site (`novap-website-v6-3d-vials`) is a UI reference only. Never copy code from it into this repo.
 
@@ -23,6 +23,7 @@ Run from repo root.
 ```sh
 pnpm typecheck                                  # must pass before any PR
 pnpm dev:api                                    # http://localhost:8787, Swagger UI at /api/docs
+pnpm dev:shop                                   # http://localhost:5173 (needs dev:api running)
 pnpm dev:admin                                  # http://localhost:5174 (needs dev:api running)
 pnpm --filter @novap/api db:generate            # after editing schema.ts
 pnpm --filter @novap/api db:migrate:local
@@ -77,6 +78,25 @@ apps/admin/src/
   components/         Layout (sidebar), ui.tsx (Field, Badge, Pagination, QueryState...), product editors
   pages/              one file per screen
 ```
+
+## Code layout (shop)
+
+Same stack and helpers as admin (`lib/api.ts`, `lib/forms.ts`, `lib/query.ts`, `lib/list-params.ts` are copies; keep
+them in step), on http://localhost:5173 (must match `SHOP_URL`). Inter is self-hosted via `@fontsource-variable/inter`.
+
+```
+apps/shop/src/
+  App.tsx             routes. /cart, /checkout/success, /reset-password, /verify-email are linked from the API
+                      (Stripe redirects, emails): don't rename them without changing apps/api
+  lib/cart.ts         cart in localStorage (variantId, quantity, slug), useCart / useCartCount, synced across tabs
+  lib/auth.tsx        useMe, useLogin, useRegister, useLogout, RequireAuth (account pages), useReturnTo
+  components/         Layout (header, footer), ProductCard / ProductGrid, ui.tsx (Field, Price, PageHero, ...)
+  pages/              Home, Shop, Product, Cart (+ checkout), CheckoutSuccess, Contact, Auth (login, register,
+                      forgot/reset password, verify email), Account (+ order detail), NotFound
+```
+
+Look: warm off-white, near-black, champagne accent, tight display type (theme tokens in `src/index.css`). The old
+static site is the visual reference only; no code or images were copied from it.
 
 ## Frontend conventions
 
