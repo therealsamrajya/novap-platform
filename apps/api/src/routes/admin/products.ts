@@ -1,17 +1,22 @@
 import { createRoute } from "@hono/zod-openapi";
 import {
+  IMAGE_MAX_BYTES,
+  IMAGES_PER_PRODUCT_MAX,
   adminProductDetailSchema,
+  adminProductImageSchema,
   adminProductListQuerySchema,
   adminProductSummarySchema,
   adminVariantSchema,
+  imageUploadSchema,
   paginatedSchema,
   productCreateSchema,
   productUpdateSchema,
   variantCreateSchema,
 } from "@novap/shared";
+import { bodyLimit } from "hono/body-limit";
 import { HTTPException } from "hono/http-exception";
 import { getDb } from "../../db/client";
-import { cookieAuth, createRouter, errors, idParams, json } from "../../lib/openapi";
+import { adminTags, cookieAuth, createRouter, errors, idParams, json } from "../../lib/openapi";
 import {
   createProduct,
   createVariant,
@@ -20,7 +25,10 @@ import {
   listAdminProducts,
   updateProduct,
 } from "../../services/admin-catalog";
+import { uploadProductImage } from "../../services/admin-images";
 
+const AdminProductImage = adminProductImageSchema.openapi("AdminProductImage");
+const ImageUpload = imageUploadSchema.openapi("ImageUpload");
 const AdminProductSummary = adminProductSummarySchema.openapi("AdminProductSummary");
 const AdminProductDetail = adminProductDetailSchema.openapi("AdminProductDetail");
 const AdminVariant = adminVariantSchema.openapi("AdminVariant");
@@ -29,7 +37,7 @@ const ProductUpdate = productUpdateSchema.openapi("ProductUpdate");
 const VariantCreate = variantCreateSchema.openapi("VariantCreate");
 
 // Every route here sits behind requireAdmin (index.ts).
-const admin = { tags: ["Admin"], security: cookieAuth };
+const admin = { tags: [adminTags.products], security: cookieAuth };
 const guarded = { 401: errors[401], 403: errors[403], 500: errors[500] };
 const notFound = () => new HTTPException(404, { message: "Product not found" });
 
@@ -115,6 +123,7 @@ const remove = createRoute({
 // POST /api/admin/products/:id/variants — add a variant to a product
 const addVariant = createRoute({
   ...admin,
+  tags: [adminTags.variants],
   method: "post",
   path: "/{id}/variants",
   summary: "Add a variant",
@@ -129,6 +138,41 @@ const addVariant = createRoute({
     404: errors[404],
     409: errors[409],
     415: errors[415],
+    ...guarded,
+  },
+});
+
+// POST /api/admin/products/:id/images — upload an image to R2
+const addImage = createRoute({
+  ...admin,
+  tags: [adminTags.images],
+  method: "post",
+  path: "/{id}/images",
+  summary: "Upload an image",
+  description:
+    "multipart/form-data with `file` (JPEG, PNG, WebP or AVIF, max 5 MB) and optional `alt`. " +
+    "The type is checked from the file's bytes, not its name. Added at the end of the display order. " +
+    `409 when the product already has ${IMAGES_PER_PRODUCT_MAX} images.`,
+  // Rejects oversized bodies while streaming, before the upload is read into memory.
+  // The margin covers the multipart boundaries and the alt field.
+  middleware: [
+    bodyLimit({
+      maxSize: IMAGE_MAX_BYTES + 64 * 1024,
+      onError: () => {
+        throw new HTTPException(413, { message: "Images must be 5 MB or smaller" });
+      },
+    }),
+  ] as const,
+  request: {
+    params: idParams(2),
+    body: { content: { "multipart/form-data": { schema: ImageUpload } }, required: true },
+  },
+  responses: {
+    201: json(AdminProductImage, "Uploaded"),
+    400: errors[400],
+    404: errors[404],
+    409: errors[409],
+    413: errors[413],
     ...guarded,
   },
 });
@@ -154,4 +198,9 @@ export const adminProductsRoute = createRouter()
     const variant = await createVariant(getDb(c.env.DB), c.req.valid("param").id, c.req.valid("json"));
     if (!variant) throw notFound();
     return c.json(variant, 201);
+  })
+  .openapi(addImage, async (c) => {
+    const image = await uploadProductImage(getDb(c.env.DB), c.env.BUCKET, c.req.valid("param").id, c.req.valid("form"));
+    if (!image) throw notFound();
+    return c.json(image, 201);
   });

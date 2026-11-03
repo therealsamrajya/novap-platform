@@ -12,6 +12,7 @@ const fallbackMessages: Record<number, string> = {
   401: "Not logged in",
   403: "Forbidden",
   404: "Not found",
+  413: "Request body too large",
   415: "Unsupported content type",
 };
 
