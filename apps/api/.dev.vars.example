@@ -9,3 +9,8 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # Resend (https://resend.com/api-keys). Leave empty to print emails to the
 # `pnpm dev:api` console instead of sending them.
 RESEND_API_KEY=
+
+# Optional: any wrangler.jsonc var can be overridden here for local dev, e.g. to get
+# contact notifications in your own inbox (with onboarding@resend.dev as sender, use
+# the email of your Resend account).
+# ADMIN_NOTIFY_EMAIL=you@example.com
