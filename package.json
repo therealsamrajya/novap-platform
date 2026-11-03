@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev:api": "pnpm --filter @novap/api dev",
+    "dev:admin": "pnpm --filter @novap/admin dev",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
