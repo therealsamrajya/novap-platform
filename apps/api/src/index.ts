@@ -9,6 +9,9 @@ import { secureHeaders } from "hono/secure-headers";
 import { SESSION_COOKIE } from "./lib/session";
 import { loadSession, requireAdmin } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
+import { adminCategoriesRoute } from "./routes/admin/categories";
+import { adminProductsRoute } from "./routes/admin/products";
+import { adminVariantsRoute } from "./routes/admin/variants";
 import { authRoute } from "./routes/auth";
 import { categoriesRoute } from "./routes/categories";
 import { contactRoute } from "./routes/contact";
@@ -42,7 +45,7 @@ app.use("/api/*", (c, next) => csrf({ origin: [c.env.SHOP_URL, c.env.ADMIN_URL] 
 app.use("/api/*", loadSession);
 
 // Everything under /api/admin needs an admin: 401 not logged in, 403 not admin.
-// Phase 5 mounts the admin routes here; the guard already covers them.
+// Admin routers below rely on this guard instead of checking per route.
 app.use("/api/admin/*", requireAdmin);
 
 app.route("/api/health", healthRoute);
@@ -52,10 +55,14 @@ app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
 app.route("/api/contact", contactRoute);
 
+app.route("/api/admin/categories", adminCategoriesRoute);
+app.route("/api/admin/products", adminProductsRoute);
+app.route("/api/admin/variants", adminVariantsRoute);
+
 // ---------------------------------------------------------------- API docs
 // The OpenAPI spec is generated from the zod schemas used for validation, so it
 // can't drift from the code. Swagger UI: http://localhost:8787/api/docs
-// Hidden in production so admin routes (phase 5) aren't advertised.
+// Hidden in production so admin routes aren't advertised.
 const docsOutsideProduction: MiddlewareHandler<AppEnv> = async (c, next) => {
   // APP_ENV is typed from wrangler.jsonc ("development"); production sets it per environment.
   if ((c.env.APP_ENV as string) === "production") throw new HTTPException(404, { message: "Not found" });
@@ -80,6 +87,7 @@ app.doc31("/api/openapi.json", {
       "`issues` only on 400. Lists return `{ items, page, limit, total }`.",
   },
   tags: [
+    { name: "Admin", description: "Catalogue management. Needs an admin session (401 / 403 otherwise)" },
     { name: "Auth", description: "Register, log in, log out, current user" },
     { name: "Catalog", description: "Public products, categories and images" },
     { name: "Contact", description: "Public contact form" },

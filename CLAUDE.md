@@ -60,9 +60,10 @@ apps/api/src/
 - **Errors**: see "Error responses" below. Never return stack traces or DB errors.
 - **DB access**: `const db = getDb(c.env.DB)` once per request (`db/client.ts`). Prefer
   `db.query.<table>.findMany({ with })` for nested reads, query builder for filters/aggregates.
-- **Drizzle subqueries** (`.as("name")`): every selected column name must be unique. When joined tables
-  share names (`id`, `slug`, `name`), alias them with ``sql`${t.col}`.as("t_col")``. Otherwise the
-  outer select silently reads the wrong columns. See `services/catalog.ts`.
+- **Joins and subqueries**: every selected column name must be unique. When joined tables
+  share names (`id`, `slug`, `name`), alias them with ``sql`${t.col}`.as("t_col")``. D1 merges result
+  columns with the same name, so values silently shift into the wrong fields. This happens in plain
+  `select().from().leftJoin()` too, not only in subqueries. See `services/catalog.ts`, `services/admin-catalog.ts`.
 - **Lists**: extend `paginationQuerySchema`, return `paginated(...)` (`lib/pagination.ts`), and give the sort a stable
   tie-breaker (`id`) so pages never overlap. Text search goes through `containsText` (`lib/sql.ts`), which escapes LIKE wildcards.
 - **Money**: integer cents, AUD, GST-inclusive. Never floats. Format only in frontends (`formatAud`).

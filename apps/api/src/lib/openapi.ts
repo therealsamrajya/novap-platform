@@ -1,5 +1,5 @@
 import { OpenAPIHono, z } from "@hono/zod-openapi";
-import { apiErrorSchema } from "@novap/shared";
+import { apiErrorSchema, idParamSchema } from "@novap/shared";
 import type { AppEnv } from "../index";
 
 // Every route file uses this instead of `new Hono()`. Routes declared with
@@ -43,3 +43,6 @@ export const slugParams = (example: string) =>
       .max(200)
       .openapi({ param: { name: "slug", in: "path" }, example }),
   });
+
+export const idParams = (example: number) =>
+  z.object({ id: idParamSchema.openapi({ param: { name: "id", in: "path" }, example }) });

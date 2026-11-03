@@ -132,7 +132,7 @@ export async function listProducts(db: Db, query: ProductListQuery): Promise<Pag
   return paginated(items, counted?.total ?? 0, page, limit);
 }
 
-async function firstImageByProduct(db: Db, productIds: number[]): Promise<Map<number, ProductImage>> {
+export async function firstImageByProduct(db: Db, productIds: number[]): Promise<Map<number, ProductImage>> {
   const result = new Map<number, ProductImage>();
   if (productIds.length === 0) return result;
 
