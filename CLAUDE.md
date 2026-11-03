@@ -7,7 +7,7 @@ Guide for Claude Code working in this repo. Human docs: [README.md](README.md),
 
 NŌVAP e-commerce platform. pnpm monorepo on Cloudflare:
 
-- `apps/api` — Cloudflare Worker, Hono 4, Drizzle ORM on D1 (SQLite), R2 for images, Stripe (phase 6)
+- `apps/api` — Cloudflare Worker, Hono 4, Drizzle ORM on D1 (SQLite), R2 for images, Stripe Checkout + webhook
 - `packages/shared` (`@novap/shared`) — zod 4 schemas, inferred types, money helpers. Imported by api now, shop/admin later
 - `apps/shop`, `apps/admin` — not created yet (phase 8)
 
@@ -26,7 +26,13 @@ pnpm --filter @novap/api db:generate            # after editing schema.ts
 pnpm --filter @novap/api db:migrate:local
 pnpm --filter @novap/api db:reset:local         # wipe + migrate + seed.sql; stop dev:api first (it refuses otherwise)
 pnpm --filter @novap/api types                  # after editing wrangler.jsonc
+stripe listen --events checkout.session.completed,checkout.session.expired,charge.refunded --forward-to localhost:8787/api/stripe/webhook
 ```
+
+Checkout needs `STRIPE_SECRET_KEY` (`sk_test_...`, never live) and `STRIPE_WEBHOOK_SECRET` (printed by `stripe listen`)
+in `apps/api/.dev.vars`. Restart `pnpm dev:api` after changing `.dev.vars`. Test card `4242 4242 4242 4242`.
+Without `stripe listen` running, webhook events are lost and orders stay `pending`. To replay a real event, sign it
+with `stripe.webhooks.generateTestHeaderString` and POST it.
 
 No test runner yet. Verify by typecheck plus curl against `pnpm dev:api` (see the `verify-api` skill).
 
@@ -41,9 +47,10 @@ and `pnpm exec wrangler` prints nothing. Use the following from `apps/api`, with
 apps/api/src/
   index.ts            app (OpenAPIHono), global middleware, route mounting, OpenAPI doc + Swagger UI, exports AppEnv
   routes/<name>.ts    one createRouter() per resource, routes declared with createRoute; thin: validated input -> service -> JSON
-  routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, contact)
+  routes/stripe.ts    Stripe webhook (signature-verified, no session)
+  routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, orders, contact)
   services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports (admin ones: admin-*.ts)
-  lib/                small pure helpers (pagination, sql, images, ...)
+  lib/                small helpers (pagination, sql, images, stripe client, ...)
   middleware/         error handler; auth.ts (loadSession, requireAuth, requireAdmin, currentUser, cookie helpers)
   db/schema.ts        Drizzle tables + relations (single file)
   db/migrations/      generated SQL; never hand-edit merged ones
@@ -65,10 +72,19 @@ apps/api/src/
   share names (`id`, `slug`, `name`), alias them with ``sql`${t.col}`.as("t_col")``. D1 merges result
   columns with the same name, so values silently shift into the wrong fields. This happens in plain
   `select().from().leftJoin()` too, not only in subqueries. See `services/catalog.ts`, `services/admin-catalog.ts`.
+- **No correlated subqueries in single-table selects**: there Drizzle renders columns unqualified (`"id"`, not
+  `"orders"."id"`), so `order_id = ${orders.id}` inside a subquery silently compares the inner table with itself.
+  Use a second grouped query over the page's ids instead (`itemCounts` in `services/admin-orders.ts`). `UPDATE`
+  statements do qualify columns, so the subquery in `cancelPendingOrder` is fine.
 - **Lists**: extend `paginationQuerySchema`, return `paginated(...)` (`lib/pagination.ts`), and give the sort a stable
   tie-breaker (`id`) so pages never overlap. Text search goes through `containsText` (`lib/sql.ts`), which escapes LIKE wildcards.
 - **Money**: integer cents, AUD, GST-inclusive. Never floats. Format only in frontends (`formatAud`).
 - **Prices from the client are never trusted.** Checkout re-reads prices from the DB.
+- **Orders and stock** (`services/checkout.ts`): stock is reserved when checkout starts. Change order status only with
+  a conditional update on the current status (`WHERE status = 'pending'`), so repeated or out-of-order webhooks are harmless.
+  Release stock only through `cancelPendingOrder` (restock + cancel in one batch). Only the webhook sets `paid`.
+- **Stripe**: `getStripe(c.env)` from `lib/stripe.ts`. Services take the client as a parameter, like `db`.
+  Webhook handlers live in `services/stripe-webhook.ts`; record the event in `stripe_events` only after it succeeds.
 - **Public catalog** returns only `active` products and `active` variants.
 - **Timestamps**: Drizzle `mode: "timestamp"` gives a JS `Date`, serialized as an ISO string in JSON.
 - **Typing**: `new Hono<AppEnv>()` in every route file. `Env` comes from generated `worker-configuration.d.ts`.

@@ -372,7 +372,7 @@ classDiagram
     }
     class AppEnv {
         &lt;&lt;type&gt;&gt;
-        Bindings: Env  DB, BUCKET, SHOP_URL, ADMIN_URL
+        Bindings: Env  DB, BUCKET, SHOP_URL, ADMIN_URL, STRIPE_*, shipping vars
         Variables: user  User or null
     }
 
@@ -394,6 +394,12 @@ classDiagram
     class contactRoute {
         &lt;&lt;route /api/contact&gt;&gt;
     }
+    class checkoutRoute {
+        &lt;&lt;route /api/checkout&gt;&gt;
+    }
+    class stripeRoute {
+        &lt;&lt;route /api/stripe&gt;&gt;
+    }
     class adminCategoriesRoute {
         &lt;&lt;route /api/admin/categories&gt;&gt;
     }
@@ -405,6 +411,9 @@ classDiagram
     }
     class adminImagesRoute {
         &lt;&lt;route /api/admin/images&gt;&gt;
+    }
+    class adminOrdersRoute {
+        &lt;&lt;route /api/admin/orders&gt;&gt;
     }
     class adminContactRoute {
         &lt;&lt;route /api/admin/contact&gt;&gt;
@@ -445,6 +454,17 @@ classDiagram
         &lt;&lt;services/contact.ts&gt;&gt;
         submitContactMessage(db, input)
     }
+    class checkoutService {
+        &lt;&lt;services/checkout.ts&gt;&gt;
+        createCheckout(db, stripe, config, input, user) CheckoutCreated
+        cancelPendingOrder(db, orderId) boolean
+        getCheckoutSessionStatus(db, sessionId) CheckoutSessionStatus?
+        shippingFor(subtotalCents, config) number
+    }
+    class stripeWebhookService {
+        &lt;&lt;services/stripe-webhook.ts&gt;&gt;
+        handleStripeEvent(db, event)
+    }
     class adminCatalogService {
         &lt;&lt;services/admin-catalog.ts&gt;&gt;
         categories: list, get, create, update, delete
@@ -456,6 +476,12 @@ classDiagram
         uploadProductImage(db, bucket, productId, input) AdminProductImage?
         updateProductImage(db, id, input) AdminProductImage?
         deleteProductImage(db, bucket, id) boolean
+    }
+    class adminOrdersService {
+        &lt;&lt;services/admin-orders.ts&gt;&gt;
+        listOrders(db, query) Paginated~AdminOrderSummary~
+        getOrder(db, id) AdminOrder?
+        updateOrder(db, id, input) AdminOrder?
     }
     class adminContactService {
         &lt;&lt;services/admin-contact.ts&gt;&gt;
@@ -502,6 +528,10 @@ classDiagram
         imageUrl(r2Key)
         sniffImageType(bytes) type, ext
     }
+    class stripeLib {
+        &lt;&lt;lib/stripe.ts&gt;&gt;
+        getStripe(env) Stripe
+    }
 
     class Db {
         &lt;&lt;db/client.ts — Drizzle over D1&gt;&gt;
@@ -517,6 +547,9 @@ classDiagram
     class R2 {
         &lt;&lt;Cloudflare R2 bucket&gt;&gt;
     }
+    class Stripe {
+        &lt;&lt;Stripe API — Checkout Sessions, webhook signatures&gt;&gt;
+    }
 
     App --&gt; AppEnv
     App --&gt; healthRoute
@@ -525,10 +558,13 @@ classDiagram
     App --&gt; productsRoute
     App --&gt; imagesRoute
     App --&gt; contactRoute
+    App --&gt; checkoutRoute
+    App --&gt; stripeRoute
     App --&gt; adminCategoriesRoute
     App --&gt; adminProductsRoute
     App --&gt; adminVariantsRoute
     App --&gt; adminImagesRoute
+    App --&gt; adminOrdersRoute
     App --&gt; adminContactRoute
     App --&gt; authMiddleware
     App --&gt; errorMiddleware
@@ -538,12 +574,20 @@ classDiagram
     categoriesRoute --&gt; catalogService
     productsRoute --&gt; catalogService
     contactRoute --&gt; contactService
+    checkoutRoute --&gt; checkoutService
+    checkoutRoute ..&gt; stripeLib
+    stripeRoute --&gt; stripeWebhookService
+    stripeRoute ..&gt; stripeLib
+    stripeWebhookService --&gt; checkoutService
+    checkoutService --&gt; Stripe
+    stripeLib ..&gt; Stripe
     imagesRoute --&gt; R2
     adminCategoriesRoute --&gt; adminCatalogService
     adminProductsRoute --&gt; adminCatalogService
     adminProductsRoute --&gt; adminImagesService
     adminVariantsRoute --&gt; adminCatalogService
     adminImagesRoute --&gt; adminImagesService
+    adminOrdersRoute --&gt; adminOrdersService
     adminContactRoute --&gt; adminContactService
     adminCatalogService --&gt; R2
     adminImagesService --&gt; R2
@@ -554,10 +598,13 @@ classDiagram
     productsRoute ..&gt; openapiLib
     imagesRoute ..&gt; openapiLib
     contactRoute ..&gt; openapiLib
+    checkoutRoute ..&gt; openapiLib
+    stripeRoute ..&gt; openapiLib
     adminCategoriesRoute ..&gt; openapiLib
     adminProductsRoute ..&gt; openapiLib
     adminVariantsRoute ..&gt; openapiLib
     adminImagesRoute ..&gt; openapiLib
+    adminOrdersRoute ..&gt; openapiLib
     adminContactRoute ..&gt; openapiLib
     openapiLib ..&gt; shared
 
@@ -573,14 +620,19 @@ classDiagram
     adminCatalogService ..&gt; sqlLib
     adminCatalogService ..&gt; imagesLib
     adminImagesService ..&gt; imagesLib
+    adminOrdersService ..&gt; paginationLib
+    adminOrdersService ..&gt; sqlLib
     adminContactService ..&gt; paginationLib
     adminContactService ..&gt; sqlLib
 
     authService --&gt; Db
     catalogService --&gt; Db
     contactService --&gt; Db
+    checkoutService --&gt; Db
+    stripeWebhookService --&gt; Db
     adminCatalogService --&gt; Db
     adminImagesService --&gt; Db
+    adminOrdersService --&gt; Db
     adminContactService --&gt; Db
     Db --&gt; schema
 </pre>

@@ -36,3 +36,27 @@ INSERT INTO contact_messages (name, email, subject, message, status, created_at)
   ('Alex Citizen', 'alex@example.com', 'Question about Reference 02', 'Hi, is the Large size coming back in stock soon?', 'new', unixepoch() - 3600),
   ('Sam Lee', 'sam@example.com', 'Shipping to Perth', 'How long does delivery to WA usually take?', 'read', unixepoch() - 86400),
   ('Jo Park', 'jo@example.com', 'Order arrived', 'Just letting you know my order arrived safely. Thanks!', 'archived', unixepoch() - 172800);
+
+-- Orders: one per status, for the admin order list. Totals follow checkout's rules: flat $9.95 shipping
+-- under $150, GST = round(total / 11). Stripe ids are fake, so these can't be looked up in Stripe.
+-- The pending order has no Stripe session, so nothing will ever expire it; it only shows up with ?status=pending.
+INSERT INTO orders (id, user_id, email, status, subtotal_cents, shipping_cents, gst_cents, total_cents, shipping_address, stripe_session_id, stripe_payment_intent_id, paid_at, fulfilled_at, tracking_number, created_at) VALUES
+  (1, NULL, 'alex@example.com', 'paid', 7490, 995, 771, 8485,
+   '{"name":"Alex Citizen","line1":"1 Test Street","line2":null,"city":"Sydney","state":"NSW","postcode":"2000","country":"AU","phone":"+61400000001"}',
+   'cs_test_seed_1', 'pi_seed_1', unixepoch() - 7200, NULL, NULL, unixepoch() - 7300),
+  (2, 2, 'customer@novap.local', 'fulfilled', 10990, 995, 1090, 11985,
+   '{"name":"Dev Customer","line1":"20 Sample Road","line2":"Unit 4","city":"Melbourne","state":"VIC","postcode":"3000","country":"AU","phone":"+61400000002"}',
+   'cs_test_seed_2', 'pi_seed_2', unixepoch() - 259200, unixepoch() - 172800, 'AP123456789AU', unixepoch() - 259300),
+  (3, NULL, 'sam@example.com', 'pending', 3995, 995, 454, 4990, NULL, 'cs_test_seed_3', NULL, NULL, NULL, NULL, unixepoch() - 600),
+  (4, NULL, 'jo@example.com', 'cancelled', 8995, 995, 908, 9990, NULL, 'cs_test_seed_4', NULL, NULL, NULL, NULL, unixepoch() - 86400),
+  (5, 2, 'customer@novap.local', 'refunded', 17990, 0, 1635, 17990,
+   '{"name":"Dev Customer","line1":"20 Sample Road","line2":"Unit 4","city":"Melbourne","state":"VIC","postcode":"3000","country":"AU","phone":"+61400000002"}',
+   'cs_test_seed_5', 'pi_seed_5', unixepoch() - 604800, NULL, NULL, unixepoch() - 604900);
+
+INSERT INTO order_items (order_id, variant_id, product_name, variant_label, sku, unit_price_cents, quantity) VALUES
+  (1, 1, 'Reference 01', 'Small', 'REF01-S', 4995, 1),
+  (1, 7, 'Storage Case', 'Standard', 'CASE-BLK', 2495, 1),
+  (2, 3, 'Reference 02', 'Small', 'REF02-S', 5495, 2),
+  (3, 5, 'Reference 03', 'Small', 'REF03-S', 3995, 1),
+  (4, 2, 'Reference 01', 'Large', 'REF01-L', 8995, 1),
+  (5, 2, 'Reference 01', 'Large', 'REF01-L', 8995, 2);

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { paginationQuerySchema } from "./api";
 import { categorySummarySchema, productImageSchema } from "./catalog";
+import { orderLineSchema, orderStatusSchema } from "./checkout";
 import { SLUG_MAX, SLUG_PATTERN } from "./slug";
 import { booleanParam, optionalText, required } from "./validation";
 
@@ -261,3 +262,70 @@ export type AdminContactMessage = z.infer<typeof adminContactMessageSchema>;
 
 export const contactUpdateSchema = z.strictObject({ status: contactStatusSchema });
 export type ContactUpdateInput = z.output<typeof contactUpdateSchema>;
+
+// ---------------------------------------------------------------- orders
+
+export const adminOrderListQuerySchema = paginationQuerySchema.extend({
+  status: orderStatusSchema
+    .optional()
+    .meta({ description: "Only orders with this status. Left out: all except pending (unpaid checkouts)" }),
+  q: optionalText.meta({ description: "Search by email (contains) or order number (exact)" }),
+});
+export type AdminOrderListQuery = z.output<typeof adminOrderListQuerySchema>;
+
+export const adminOrderSummarySchema = z.object({
+  id: z.number().int().meta({ example: 4 }),
+  email: z.string().meta({ example: "guest@example.com" }),
+  userId: z.number().int().nullable().meta({ description: "null for guest orders", example: null }),
+  status: orderStatusSchema,
+  totalCents: z.number().int().meta({ example: 13480 }),
+  itemCount: z.number().int().meta({ description: "Total quantity across all lines", example: 3 }),
+  createdAt: z.iso.datetime(),
+  paidAt: z.iso.datetime().nullable(),
+});
+export type AdminOrderSummary = z.infer<typeof adminOrderSummarySchema>;
+
+export const shippingAddressSchema = z.object({
+  name: z.string().meta({ example: "Test Customer" }),
+  line1: z.string().meta({ example: "1 Test Street" }),
+  line2: z.string().nullable().optional(),
+  city: z.string().meta({ example: "Sydney" }),
+  state: z.string().meta({ example: "NSW" }),
+  postcode: z.string().meta({ example: "2000" }),
+  country: z.string().meta({ example: "AU" }),
+  phone: z.string().nullable().optional().meta({ example: "+61400000000" }),
+});
+
+export const adminOrderSchema = adminOrderSummarySchema.extend({
+  currency: z.string().meta({ example: "aud" }),
+  subtotalCents: z.number().int().meta({ example: 12485 }),
+  shippingCents: z.number().int().meta({ example: 995 }),
+  gstCents: z.number().int().meta({ description: "GST included in the total", example: 1225 }),
+  shippingAddress: shippingAddressSchema.nullable().meta({ description: "Collected by Stripe; null until paid" }),
+  items: z.array(
+    orderLineSchema.extend({
+      variantId: z.number().int().nullable().meta({ description: "null if the variant was deleted since", example: 1 }),
+    }),
+  ),
+  customer: z
+    .object({ id: z.number().int(), name: z.string(), email: z.string() })
+    .nullable()
+    .meta({ description: "The account that placed the order; null for guests" }),
+  trackingNumber: z.string().nullable().meta({ example: "AP123456789AU" }),
+  fulfilledAt: z.iso.datetime().nullable(),
+  stripeSessionId: z.string().nullable().meta({ example: "cs_test_a1b2c3" }),
+  stripePaymentIntentId: z.string().nullable().meta({ description: "Find the payment in the Stripe dashboard", example: "pi_3abc" }),
+  updatedAt: z.iso.datetime(),
+});
+export type AdminOrder = z.infer<typeof adminOrderSchema>;
+
+// The only manual status change is shipping a paid order. Payment, cancellation and
+// refunds come from Stripe through the webhook (refund in the Stripe dashboard).
+export const orderUpdateSchema = z
+  .strictObject({
+    status: z.literal("fulfilled").meta({ description: "Mark a paid order as shipped. Sets fulfilledAt" }),
+    trackingNumber: nullableText(100).meta({ description: "Blank or null clears it", example: "AP123456789AU" }),
+  })
+  .partial()
+  .refine(notEmpty, notEmptyMessage);
+export type OrderUpdateInput = z.output<typeof orderUpdateSchema>;

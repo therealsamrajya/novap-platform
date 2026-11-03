@@ -27,6 +27,9 @@ cp apps/api/.dev.vars.example apps/api/.dev.vars
 pnpm dev:api          # http://localhost:8787/api/health
 ```
 
+Checkout also needs a Stripe test-mode key and the [Stripe CLI](https://docs.stripe.com/stripe-cli) for webhooks.
+See [docs/api.md](docs/api.md#checkout).
+
 ## Useful commands
 
 | Command | What it does |
@@ -51,8 +54,8 @@ Never edit an old migration file — always generate a new one.
 - Money is integer cents in AUD. Prices are GST-inclusive (Australian retail standard).
 - Never trust client prices — checkout looks up prices from the database.
 - Auth uses session cookies (httpOnly), stored in D1.
-- Orders are recorded for guests (`guest_email`) and registered users (`user_id`).
-- Only the Stripe webhook marks an order as paid.
+- Orders are recorded for guests and registered users in one table; guests have no `user_id`.
+- Only the Stripe webhook marks an order as paid. Stock is held from checkout until payment or session expiry.
 - Branching, commits and PRs: see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Docs
@@ -69,7 +72,7 @@ Never edit an old migration file — always generate a new one.
 3. [x] Public API — products, categories, filters, pagination, contact form
 4. [x] Auth — register, login, sessions, admin role
 5. [x] Admin API — product/variant/category CRUD, image upload to R2, contact inbox
-6. [ ] Checkout — Stripe Checkout, webhook, stock, guest + user orders
+6. [x] Checkout — Stripe Checkout, webhook, stock, guest + user orders
 7. [ ] Emails + account — confirmations, password reset, order history, contact notifications
 8. [ ] Frontends — admin dashboard, storefront
 9. [ ] Hardening + deploy — rate limits, logging, environments, domain

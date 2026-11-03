@@ -13,14 +13,17 @@ import { errorHandler } from "./middleware/error";
 import { adminCategoriesRoute } from "./routes/admin/categories";
 import { adminContactRoute } from "./routes/admin/contact";
 import { adminImagesRoute } from "./routes/admin/images";
+import { adminOrdersRoute } from "./routes/admin/orders";
 import { adminProductsRoute } from "./routes/admin/products";
 import { adminVariantsRoute } from "./routes/admin/variants";
 import { authRoute } from "./routes/auth";
 import { categoriesRoute } from "./routes/categories";
+import { checkoutRoute } from "./routes/checkout";
 import { contactRoute } from "./routes/contact";
 import { healthRoute } from "./routes/health";
 import { imagesRoute } from "./routes/images";
 import { productsRoute } from "./routes/products";
+import { stripeRoute } from "./routes/stripe";
 
 // `Env` is generated from wrangler.jsonc by `pnpm types` (worker-configuration.d.ts).
 // Variables: per-request values set by middleware, read with c.get("user") / c.var.user.
@@ -57,11 +60,14 @@ app.route("/api/categories", categoriesRoute);
 app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
 app.route("/api/contact", contactRoute);
+app.route("/api/checkout", checkoutRoute);
+app.route("/api/stripe", stripeRoute);
 
 app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/products", adminProductsRoute);
 app.route("/api/admin/variants", adminVariantsRoute);
 app.route("/api/admin/images", adminImagesRoute);
+app.route("/api/admin/orders", adminOrdersRoute);
 app.route("/api/admin/contact", adminContactRoute);
 
 // ---------------------------------------------------------------- API docs
@@ -95,11 +101,13 @@ app.doc31("/api/openapi.json", {
     { name: "Auth", description: "Register, log in, log out, current user" },
     { name: "Catalog", description: "Public products, categories and images" },
     { name: "Contact", description: "Public contact form" },
+    { name: "Checkout", description: "Guest and customer checkout through Stripe" },
     // Admin sections need an admin session: 401 not logged in, 403 not an admin.
     { name: adminTags.categories, description: "Create, edit and delete categories. Admin only" },
     { name: adminTags.products, description: "All products, including inactive ones. Admin only" },
     { name: adminTags.variants, description: "Sizes / options of a product, with price and stock. Admin only" },
     { name: adminTags.images, description: "Upload product images to R2, reorder, delete. Admin only" },
+    { name: adminTags.orders, description: "Orders from checkout: list, details, mark shipped with a tracking number. Admin only" },
     { name: adminTags.contact, description: "Messages from the contact form: read, archive, delete. Admin only" },
     { name: "System", description: "Health and diagnostics" },
   ],
