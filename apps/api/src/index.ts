@@ -32,7 +32,12 @@ export type AppEnv = { Bindings: Env; Variables: { user: User | null } };
 
 const app = new OpenAPIHono<AppEnv>();
 
-app.use("*", secureHeaders());
+// The default Cross-Origin-Resource-Policy is same-origin, which stops the shop and admin
+// (other origins) from showing product images in <img>. They are on the same site, so
+// images get same-site; every other response keeps same-origin.
+const defaultHeaders = secureHeaders();
+const imageHeaders = secureHeaders({ crossOriginResourcePolicy: "same-site" });
+app.use("*", (c, next) => (c.req.path.startsWith("/api/images/") ? imageHeaders : defaultHeaders)(c, next));
 
 // Shop and admin run on different origins, so the browser needs CORS.
 // credentials: true lets the session cookie travel with requests.

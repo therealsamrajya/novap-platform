@@ -5,7 +5,7 @@
 ```
  shop (phase 8) ─┐                     ┌─ D1  (SQLite: catalog, users, orders)
                  ├─ HTTPS ─► API Worker┤
-admin (phase 8) ─┘   (CORS + cookie)   ├─ R2  (product images)
+admin           ─┘   (CORS + cookie)   ├─ R2  (product images)
                                        ├─ Stripe (Checkout + webhook)
                                        └─ Resend (emails)
 ```
@@ -150,6 +150,8 @@ HTML version, and user text is escaped with `escapeHtml`. `services/notification
 | Resend over plain `fetch`, no SDK | One endpoint is all the API needs. Nothing extra to bundle into the Worker |
 | Password reset tokens: random, stored as sha256, 1 hour, single use, newest only | Same scheme as sessions, so a leaked table can't reset anyone. The token is claimed with one conditional update, so two requests with the same link can't both succeed |
 | Guest orders join the account history only after the email is confirmed | Matching by email alone would let anyone register with someone else's address and read their orders and shipping address. Orders placed while logged in show without confirmation |
+| Product images send `Cross-Origin-Resource-Policy: same-site`; everything else keeps `same-origin` | `secureHeaders()` defaults to `same-origin`, which blocks the shop and admin (other origins on the same site) from showing images in `<img>`. `same-site` still keeps other websites from embedding them |
+| Frontends are React + Vite SPAs calling the API with `fetch(..., { credentials: "include" })` | Static files deploy anywhere and talk to the one API. The admin needs no SEO. Forms validate with the same `@novap/shared` schemas the API uses, and server errors come back in the same `{ error, issues }` shape, so both map onto the same fields |
 | Unconfirmed accounts can still log in and buy | Confirmation only guards access to guest orders. Blocking login would cost sales for no security gain |
 | A password reset also confirms the email | The reset link reached the inbox, which is the same proof a confirmation link gives |
 | Order history shows only paid, fulfilled and refunded orders | Pending and cancelled orders are unfinished or expired checkouts, not purchases |

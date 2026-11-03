@@ -8,8 +8,9 @@ Guide for Claude Code working in this repo. Human docs: [README.md](README.md),
 NŌVAP e-commerce platform. pnpm monorepo on Cloudflare:
 
 - `apps/api` — Cloudflare Worker, Hono 4, Drizzle ORM on D1 (SQLite), R2 for images, Stripe Checkout + webhook
-- `packages/shared` (`@novap/shared`) — zod 4 schemas, inferred types, money helpers. Imported by api now, shop/admin later
-- `apps/shop`, `apps/admin` — not created yet (phase 8)
+- `packages/shared` (`@novap/shared`) — zod 4 schemas, inferred types, money helpers. Imported by api and admin (shop later)
+- `apps/admin` — admin dashboard, React + Vite SPA (see "Code layout (admin)")
+- `apps/shop` — not created yet (phase 8)
 
 The old static site (`novap-website-v6-3d-vials`) is a UI reference only. Never copy code from it into this repo.
 
@@ -22,6 +23,7 @@ Run from repo root.
 ```sh
 pnpm typecheck                                  # must pass before any PR
 pnpm dev:api                                    # http://localhost:8787, Swagger UI at /api/docs
+pnpm dev:admin                                  # http://localhost:5174 (needs dev:api running)
 pnpm --filter @novap/api db:generate            # after editing schema.ts
 pnpm --filter @novap/api db:migrate:local
 pnpm --filter @novap/api db:reset:local         # wipe + migrate + seed.sql; stop dev:api first (it refuses otherwise)
@@ -58,6 +60,34 @@ apps/api/src/
   db/migrations/      generated SQL; never hand-edit merged ones
   db/seed.sql         local sample data
 ```
+
+## Code layout (admin)
+
+React 19 + Vite SPA on http://localhost:5174 (must match `ADMIN_URL` in `wrangler.jsonc`). API base from
+`VITE_API_URL` (default `http://localhost:8787`). React Router (declarative `<Routes>`), TanStack Query, Tailwind 4.
+
+```
+apps/admin/src/
+  main.tsx, App.tsx   providers + routes; everything except /login is wrapped in RequireAdmin + Layout
+  lib/api.ts          fetch wrapper: credentials "include", throws ApiRequestError(status, error, issues); assetUrl() for image paths
+  lib/forms.ts        validate(schema, values) with the shared zod schemas; errorsFrom(err) maps API 400 issues to fields
+  lib/query.ts        QueryClient; any 401 clears ["me"], which sends the user to /login
+  lib/auth.tsx        useMe, useLogin, useLogout, RequireAdmin
+  lib/list-params.ts  list filters + page live in the URL search params
+  components/         Layout (sidebar), ui.tsx (Field, Badge, Pagination, QueryState...), product editors
+  pages/              one file per screen
+```
+
+## Frontend conventions
+
+- Validate forms with the `@novap/shared` schema the endpoint uses, then send the parsed `data`. Show API 400 `issues`
+  on the same fields (`errorsFrom`). Never re-declare a rule the shared schema already has.
+- Money: admins type dollars, `dollarsToCents` (string parsing, no float math) turns them into cents. Display with `formatAud`.
+- Query keys start with the resource (`["products", ...]`, `["orders", id]`), so one `invalidateQueries({ queryKey: ["products"] })`
+  after a write refreshes lists and details.
+- Image `url`s from the API are paths; wrap them in `assetUrl()`.
+- pnpm 11 refuses packages published less than a day ago (`minimumReleaseAge`) and may add them to
+  `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. Don't commit that; pick the previous version instead.
 
 ## Conventions (follow strictly)
 
