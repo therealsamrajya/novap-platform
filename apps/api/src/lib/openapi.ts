@@ -29,6 +29,10 @@ export const errors = {
   409: json(ApiError, "Conflicts with existing data"),
   413: json(ApiError, "Request body too large"),
   415: json(ApiError, "Body must be sent with Content-Type: application/json"),
+  429: {
+    ...json(ApiError, "Too many requests from this IP (middleware/rate-limit.ts). Wait and retry"),
+    headers: z.object({ "Retry-After": z.string().openapi({ description: "Seconds to wait", example: "60" }) }),
+  },
   500: json(ApiError, "Internal server error"),
 } as const;
 

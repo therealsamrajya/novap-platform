@@ -22,7 +22,7 @@ import { orderItems, orders, products, variants } from "../db/schema";
 
 // Stripe requires a session to stay open at least 30 minutes; one more avoids
 // a rejection from clock skew between the Worker and Stripe.
-const HOLD_MINUTES = 31;
+export const HOLD_MINUTES = 31;
 
 export type CheckoutConfig = {
   shopUrl: string;
@@ -91,6 +91,9 @@ export async function createCheckout(
         // Cards only: they settle instantly, so "session completed" always means paid.
         // Delayed methods (e.g. BECS direct debit) would need the async_payment_* events.
         allowed_payment_method_types: ["card"],
+        // AUD only. Adaptive Pricing would offer overseas buyers their own currency (e.g. NPR),
+        // with a converted amount that no longer matches our GST-inclusive AUD receipts.
+        adaptive_pricing: { enabled: false },
         customer_email: email,
         client_reference_id: String(orderId),
         metadata: { orderId: String(orderId) },

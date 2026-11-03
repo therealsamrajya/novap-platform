@@ -36,7 +36,8 @@ export async function handleStripeEvent(db: Db, event: Stripe.Event): Promise<{ 
 }
 
 // Returns the order id when this call changed it from pending to paid.
-async function markPaid(db: Db, session: Stripe.Checkout.Session): Promise<number | null> {
+// Also used by the scheduled reconcile (services/maintenance.ts) when a webhook was missed.
+export async function markPaid(db: Db, session: Stripe.Checkout.Session): Promise<number | null> {
   // Cards only (services/checkout.ts), so a completed session is always paid.
   // Guard anyway: a delayed method would arrive here as "unpaid".
   if (session.payment_status !== "paid") return null;
@@ -67,12 +68,13 @@ async function markPaid(db: Db, session: Stripe.Checkout.Session): Promise<numbe
   return paid.id;
 }
 
-async function expire(db: Db, session: Stripe.Checkout.Session) {
+// True when this call cancelled the order (false if it was already handled).
+export async function expire(db: Db, session: Stripe.Checkout.Session): Promise<boolean> {
   const order = await db.query.orders.findFirst({
     columns: { id: true },
     where: eq(orders.stripeSessionId, session.id),
   });
-  if (order) await cancelPendingOrder(db, order.id);
+  return order ? cancelPendingOrder(db, order.id) : false;
 }
 
 // Full refunds only. A partial refund leaves the order as it is; the admin sees

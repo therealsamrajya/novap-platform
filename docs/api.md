@@ -39,8 +39,24 @@ Every non-2xx response has the same shape. The message is always in `error`.
 | 409 | Conflict, e.g. duplicate email, slug or SKU, or a cart item out of stock at checkout |
 | 413 | Upload too large (images: max 5 MB) |
 | 415 | Wrong `Content-Type` (e.g. a JSON route sent a form) |
-| 500 | Server error. Details are logged, never returned |
+| 429 | Too many requests from this IP. Wait for `Retry-After` seconds (see "Rate limits") |
+| 500 | Server error. Details are logged with the request id, never returned |
 
+
+Every response carries an `X-Request-Id` header (Cloudflare's `cf-ray` id in production). Quote it when reporting
+a problem: the server log line for that request, including a 500's details, has the same id.
+
+### Rate limits
+
+Per client IP, per endpoint, using Cloudflare's rate limiting binding (approximate, counted per Cloudflare location).
+Over the limit the API answers `429 { "error": "Too many requests. ..." }` with `Retry-After: 60`.
+
+| Endpoints | Limit |
+|---|---|
+| `POST /api/auth/login`, `POST /api/auth/register`, `POST /api/checkout` | 10 per minute |
+| `POST /api/auth/password/forgot`, `POST /api/auth/password/reset`, `POST /api/auth/verify-email/resend`, `POST /api/contact` | 5 per minute |
+
+Locally every request shares one IP key, so a burst of curl calls can briefly block the shop's forms too.
 ### Pagination
 
 List endpoints accept `page` (default 1) and `limit` (default 12, max 48), and return:

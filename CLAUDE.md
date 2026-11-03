@@ -30,6 +30,7 @@ pnpm --filter @novap/api db:migrate:local
 pnpm --filter @novap/api db:reset:local         # wipe + migrate + seed.sql; stop dev:api first (it refuses otherwise)
 pnpm --filter @novap/api types                  # after editing wrangler.jsonc
 stripe listen --events checkout.session.completed,checkout.session.expired,charge.refunded --forward-to localhost:8787/api/stripe/webhook
+curl http://localhost:8787/cdn-cgi/handler/scheduled   # run the cron job (src/scheduled.ts) once, locally
 ```
 
 Checkout needs `STRIPE_SECRET_KEY` (`sk_test_...`, never live) and `STRIPE_WEBHOOK_SECRET` (printed by `stripe listen`)
@@ -48,15 +49,19 @@ and `pnpm exec wrangler` prints nothing. Use the following from `apps/api`, with
 
 ```
 apps/api/src/
-  index.ts            app (OpenAPIHono), global middleware, route mounting, OpenAPI doc + Swagger UI, exports AppEnv
+  index.ts            app (OpenAPIHono), global middleware, route mounting, OpenAPI doc + Swagger UI, exports AppEnv;
+                      default export is { fetch, scheduled }
+  scheduled.ts        cron trigger (every 15 min): reconcile stale pending orders, delete expired sessions/tokens
   routes/<name>.ts    one createRouter() per resource, routes declared with createRoute; thin: validated input -> service -> JSON
   routes/stripe.ts    Stripe webhook (signature-verified, no session)
   routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, orders, contact)
   services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports (admin ones: admin-*.ts)
   services/notifications.ts  load data + send emails; catches and logs its own errors
+  services/maintenance.ts    jobs for scheduled.ts (reconcileStaleOrders, deleteExpiredAuthRows)
   emails/             email templates: functions returning { to, subject, text, html }
   lib/                small helpers (pagination, sql, images, stripe client, email/mailer, ...)
   middleware/         error handler; auth.ts (loadSession, requireAuth, requireAdmin, currentUser, cookie helpers)
+                      logger.ts (requestLogger, X-Request-Id), rate-limit.ts (rateLimit per IP)
   db/schema.ts        Drizzle tables + relations (single file)
   db/migrations/      generated SQL; never hand-edit merged ones
   db/seed.sql         local sample data
@@ -141,6 +146,13 @@ static site is the visual reference only; no code or images were copied from it.
   Send from the route with `c.executionCtx.waitUntil(...)` so the response never waits on (or fails because of) an email.
   Templates in `emails/` always give both `text` and `html`, and pass user text through `escapeHtml`.
   With `RESEND_API_KEY` empty, local dev prints emails to the `pnpm dev:api` console.
+- **Rate limits**: an endpoint that can be abused (guessing, sending email, holding stock) gets
+  `app.use("<exact path>", rateLimit("RATE_LIMIT" | "RATE_LIMIT_STRICT", "<scope>"))` in `index.ts` and
+  `429: errors[429]` in its `responses`. Each scope counts separately.
+- **Logging**: log objects, not strings (`console.error({ msg, requestId, ... })`), so Workers Logs can index them.
+  Never log request bodies, passwords, tokens, cookies or emails. `middleware/logger.ts` already logs every request.
+- **Scheduled jobs** live in `services/maintenance.ts` and must be safe to run twice or alongside a webhook
+  (conditional updates, like everything else that changes order status).
 - **Public catalog** returns only `active` products and `active` variants.
 - **Timestamps**: Drizzle `mode: "timestamp"` gives a JS `Date`, serialized as an ISO string in JSON.
 - **Typing**: `new Hono<AppEnv>()` in every route file. `Env` comes from generated `worker-configuration.d.ts`.

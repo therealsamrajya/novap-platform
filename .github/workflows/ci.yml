@@ -1,0 +1,35 @@
+# Runs on every pull request and on pushes to main: the same checks as `pnpm typecheck`
+# locally, plus production builds of the shop and admin. No secrets needed.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer push to the same PR cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.17.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      # --frozen-lockfile: fail if pnpm-lock.yaml doesn't match package.json, instead of updating it.
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm --filter @novap/shop build
+      - run: pnpm --filter @novap/admin build

@@ -44,6 +44,7 @@ const register = createRoute({
     400: errors[400],
     409: errors[409],
     415: errors[415],
+    429: errors[429],
     500: errors[500],
   },
 });
@@ -61,6 +62,7 @@ const login = createRoute({
     400: errors[400],
     401: errors[401],
     415: errors[415],
+    429: errors[429],
     500: errors[500],
   },
 });
@@ -101,6 +103,7 @@ const forgotPassword = createRoute({
     202: json(EmailRequested, "Accepted. An email is sent if the account exists"),
     400: errors[400],
     415: errors[415],
+    429: errors[429],
     500: errors[500],
   },
 });
@@ -119,6 +122,7 @@ const resetPasswordRoute = createRoute({
     204: { description: "Password changed. Log in again" },
     400: errors[400],
     415: errors[415],
+    429: errors[429],
     500: errors[500],
   },
 });
@@ -156,6 +160,7 @@ const resendVerification = createRoute({
     202: json(EmailRequested, "Accepted. The email is on its way"),
     401: errors[401],
     409: errors[409],
+    429: errors[429],
     500: errors[500],
   },
 });
