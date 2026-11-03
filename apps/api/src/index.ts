@@ -11,6 +11,7 @@ import { SESSION_COOKIE } from "./lib/session";
 import { loadSession, requireAdmin } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { adminCategoriesRoute } from "./routes/admin/categories";
+import { adminContactRoute } from "./routes/admin/contact";
 import { adminImagesRoute } from "./routes/admin/images";
 import { adminProductsRoute } from "./routes/admin/products";
 import { adminVariantsRoute } from "./routes/admin/variants";
@@ -61,6 +62,7 @@ app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/products", adminProductsRoute);
 app.route("/api/admin/variants", adminVariantsRoute);
 app.route("/api/admin/images", adminImagesRoute);
+app.route("/api/admin/contact", adminContactRoute);
 
 // ---------------------------------------------------------------- API docs
 // The OpenAPI spec is generated from the zod schemas used for validation, so it
@@ -98,6 +100,7 @@ app.doc31("/api/openapi.json", {
     { name: adminTags.products, description: "All products, including inactive ones. Admin only" },
     { name: adminTags.variants, description: "Sizes / options of a product, with price and stock. Admin only" },
     { name: adminTags.images, description: "Upload product images to R2, reorder, delete. Admin only" },
+    { name: adminTags.contact, description: "Messages from the contact form: read, archive, delete. Admin only" },
     { name: "System", description: "Health and diagnostics" },
   ],
 });

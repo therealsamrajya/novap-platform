@@ -36,7 +36,9 @@ Every non-2xx response has the same shape. The message is always in `error`.
 | 401 | Not logged in, session expired, or wrong email/password on login |
 | 403 | Logged in but not allowed (e.g. not an admin), or a cross-site form post blocked by CSRF protection |
 | 404 | Resource or route not found |
-| 409 | Conflict, e.g. duplicate email |
+| 409 | Conflict, e.g. duplicate email, slug or SKU |
+| 413 | Upload too large (images: max 5 MB) |
+| 415 | Wrong `Content-Type` (e.g. a JSON route sent a form) |
 | 500 | Server error. Details are logged, never returned |
 
 ### Pagination
@@ -77,3 +79,20 @@ const me = await fetch(`${API}/api/auth/me`, { credentials: "include" }); // 200
 
 Testing with curl: keep the cookie in a jar with `-c jar` (save) and `-b jar` (send). A POST with no
 body (logout) also needs `-H "Origin: http://localhost:5173"`; browsers send that header on their own.
+
+### Admin
+
+All admin routes live under `/api/admin/*` and are grouped in Swagger as **Admin · Categories / Products /
+Variants / Images / Contact inbox**.
+
+- Resources are addressed by numeric `id` (`/api/admin/products/2`), not by slug.
+- **Strict input**: create and update bodies reject unknown keys with a 400 (`Unrecognized key: "productCount"`),
+  so typos and read-only fields fail loudly instead of being ignored.
+- **PATCH** changes only the fields sent. An empty body is a 400.
+- **Slugs**: optional on create. Left out, they are made from the name with `slugify()` from `@novap/shared`
+  (`"Café Noir"` → `cafe-noir`). A taken slug is a 409; renaming never changes the slug.
+- **Delete** is permanent. Past orders keep their own copy of name, SKU and price. To hide something instead,
+  set `active: false` (products, variants) or `status: "archived"` (contact messages).
+- **Images**: `POST /api/admin/products/{id}/images` as `multipart/form-data` with `file` and optional `alt`.
+  JPEG, PNG, WebP or AVIF (checked from the file's bytes), max 5 MB, max 20 per product.
+- Body-less requests (DELETE) and uploads from curl need `-H "Origin: http://localhost:5174"`; browsers send it.

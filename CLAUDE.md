@@ -24,7 +24,7 @@ pnpm typecheck                                  # must pass before any PR
 pnpm dev:api                                    # http://localhost:8787, Swagger UI at /api/docs
 pnpm --filter @novap/api db:generate            # after editing schema.ts
 pnpm --filter @novap/api db:migrate:local
-pnpm --filter @novap/api db:reset:local         # wipe + migrate + seed.sql
+pnpm --filter @novap/api db:reset:local         # wipe + migrate + seed.sql; stop dev:api first (it refuses otherwise)
 pnpm --filter @novap/api types                  # after editing wrangler.jsonc
 ```
 
@@ -41,8 +41,9 @@ and `pnpm exec wrangler` prints nothing. Use the following from `apps/api`, with
 apps/api/src/
   index.ts            app (OpenAPIHono), global middleware, route mounting, OpenAPI doc + Swagger UI, exports AppEnv
   routes/<name>.ts    one createRouter() per resource, routes declared with createRoute; thin: validated input -> service -> JSON
-  services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports
-  lib/                small pure helpers (pagination, slugs, ...)
+  routes/admin/       admin routers, mounted under /api/admin/<name> (categories, products, variants, images, contact)
+  services/<name>.ts  DB queries + business logic; take `db: Db` as first arg; no Hono imports (admin ones: admin-*.ts)
+  lib/                small pure helpers (pagination, sql, images, ...)
   middleware/         error handler; auth.ts (loadSession, requireAuth, requireAdmin, currentUser, cookie helpers)
   db/schema.ts        Drizzle tables + relations (single file)
   db/migrations/      generated SQL; never hand-edit merged ones
@@ -80,8 +81,14 @@ apps/api/src/
 - `loadSession` runs on every `/api/*` request and sets `c.var.user` (`User | null`). It never rejects.
 - Need the user in a handler: `const user = currentUser(c)`. It returns the `User` or throws 401.
   Also add `security: cookieAuth` and `401: errors[401]` to the `createRoute` so Swagger shows the lock.
-- Admin routes: mount them under `/api/admin/...`. `index.ts` already guards `/api/admin/*` with
-  `requireAdmin` (401/403), so don't add the check per route. List `401` and `403` in each route's `responses`.
+- Admin routes: put the router in `routes/admin/` and mount it under `/api/admin/...`. `index.ts` already guards
+  `/api/admin/*` with `requireAdmin` (401/403), so don't add the check per route. List `401` and `403` in each
+  route's `responses`. Tag routes with `adminTags.<section>` (`lib/openapi.ts`); a new section also needs an entry
+  in the `tags` list in `index.ts`.
+- Admin input: create/update schemas use `z.strictObject` (unknown keys are a 400). Update schemas are `.partial()`
+  with the `notEmpty` refine (`packages/shared/src/admin.ts`). Path ids use `idParams(...)`.
+- Unique columns (slug, SKU): wrap the write in `conflictOnUnique` (`services/admin-catalog.ts`) to get a 409,
+  instead of checking first (a check-then-write races).
 - Owner checks (e.g. "your own order") return 404, so other users' ids aren't confirmed to exist.
 - Never return a raw `users` row. Map it with `toUser` (`services/auth.ts`) so `passwordHash` can't leak.
 - Dev logins (seed): `admin@novap.local` / `novap-admin-dev`, `customer@novap.local` / `novap-customer-dev`.

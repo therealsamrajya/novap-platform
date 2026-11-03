@@ -55,4 +55,5 @@ export const adminTags = {
   products: "Admin · Products",
   variants: "Admin · Variants",
   images: "Admin · Images",
+  contact: "Admin · Contact inbox",
 } as const;
