@@ -17,6 +17,7 @@ Every table in D1, with columns, keys and foreign keys. Money is integer cents (
 ```mermaid
 erDiagram
     users ||--o{ sessions : "has"
+    users ||--o{ password_reset_tokens : "has"
     users ||--o{ addresses : "has"
     users |o--o{ orders : "places (null = guest)"
     categories |o--o{ products : "groups"
@@ -38,6 +39,13 @@ erDiagram
         text id PK "sha256(token)"
         integer user_id FK "cascade"
         integer expires_at
+        integer created_at
+    }
+    password_reset_tokens {
+        text id PK "sha256(token)"
+        integer user_id FK "cascade"
+        integer expires_at
+        integer used_at "null = unused"
         integer created_at
     }
     addresses {
@@ -146,7 +154,7 @@ erDiagram
 
 | Parent deleted | Child rows |
 |---|---|
-| user | sessions, addresses deleted; orders kept with `user_id = null` |
+| user | sessions, password reset tokens, addresses deleted; orders kept with `user_id = null` |
 | category | products kept with `category_id = null` |
 | product | variants, product_images deleted |
 | order | order_items deleted |

@@ -4,6 +4,7 @@ import type { Db } from "../db/client";
 import { orders } from "../db/schema";
 import { contactNotificationEmail } from "../emails/contact-notification";
 import { orderConfirmationEmail } from "../emails/order-confirmation";
+import { passwordResetEmail } from "../emails/password-reset";
 import type { Mailer } from "../lib/email";
 
 // Emails run after the response is sent (routes pass these to waitUntil), so they
@@ -37,6 +38,20 @@ export async function sendOrderConfirmation(db: Db, mailer: Mailer, orderId: num
     );
   } catch (err) {
     console.error(`Order confirmation email for order #${orderId} failed`, err);
+  }
+}
+
+export async function sendPasswordReset(
+  mailer: Mailer,
+  shopUrl: string,
+  reset: { token: string; name: string; email: string },
+  validMinutes: number,
+): Promise<void> {
+  try {
+    const url = `${shopUrl}/reset-password?token=${encodeURIComponent(reset.token)}`;
+    await mailer(passwordResetEmail(reset.email, reset.name, url, validMinutes));
+  } catch (err) {
+    console.error("Password reset email failed", err);
   }
 }
 

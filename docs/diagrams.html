@@ -86,6 +86,7 @@
 <pre class="mermaid" id="src-er">
 erDiagram
     users ||--o{ sessions : "has"
+    users ||--o{ password_reset_tokens : "has"
     users ||--o{ addresses : "has"
     users |o--o{ orders : "places (null = guest)"
     categories |o--o{ products : "groups"
@@ -107,6 +108,13 @@ erDiagram
         text id PK "sha256(token)"
         integer user_id FK "cascade"
         integer expires_at
+        integer created_at
+    }
+    password_reset_tokens {
+        text id PK "sha256(token)"
+        integer user_id FK "cascade"
+        integer expires_at
+        integer used_at "null = unused"
         integer created_at
     }
     addresses {

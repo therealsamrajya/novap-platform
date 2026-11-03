@@ -44,6 +44,23 @@ export const sessions = sqliteTable(
   (t) => [index("sessions_user_idx").on(t.userId)],
 );
 
+// One-time password reset links. Like sessions, only sha256(token) is stored, so the
+// table alone can't be used to reset anyone's password. A token is single-use (usedAt)
+// and short-lived (expiresAt).
+export const passwordResetTokens = sqliteTable(
+  "password_reset_tokens",
+  {
+    id: text("id").primaryKey(), // sha256(token)
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+    usedAt: integer("used_at", { mode: "timestamp" }),
+    createdAt: createdAt(),
+  },
+  (t) => [index("password_reset_tokens_user_idx").on(t.userId)],
+);
+
 export const addresses = sqliteTable(
   "addresses",
   {
@@ -227,12 +244,17 @@ export const contactMessages = sqliteTable(
 
 export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
+  passwordResetTokens: many(passwordResetTokens),
   addresses: many(addresses),
   orders: many(orders),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, { fields: [passwordResetTokens.userId], references: [users.id] }),
 }));
 
 export const addressesRelations = relations(addresses, ({ one }) => ({

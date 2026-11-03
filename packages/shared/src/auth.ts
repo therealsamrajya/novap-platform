@@ -8,15 +8,18 @@ const email = z
   .pipe(z.email("Enter a valid email address").max(254).toLowerCase())
   .meta({ format: "email", maxLength: 254, example: "alex@example.com" });
 
+// Rules for choosing a password (register, reset).
 // Max 128: hashing is deliberately slow, so very long passwords would be a cheap way to burn CPU.
+const newPassword = z
+  .string(required("Password is required"))
+  .min(10, "Password must be at least 10 characters")
+  .max(128)
+  .meta({ example: "correct-horse-battery" });
+
 export const registerSchema = z.object({
   email,
   name: z.string(required("Name is required")).trim().min(1, "Name is required").max(100).meta({ example: "Alex Citizen" }),
-  password: z
-    .string(required("Password is required"))
-    .min(10, "Password must be at least 10 characters")
-    .max(128)
-    .meta({ example: "correct-horse-battery" }),
+  password: newPassword,
 });
 export type RegisterInput = z.infer<typeof registerSchema>;
 
@@ -26,6 +29,26 @@ export const loginSchema = z.object({
   password: z.string(required("Password is required")).min(1, "Password is required").max(128).meta({ example: "correct-horse-battery" }),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+export const forgotPasswordSchema = z.object({ email });
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+// Same answer whether or not the email has an account, so the endpoint can't be used
+// to find out who is registered.
+export const passwordResetRequestedSchema = z.object({
+  received: z.literal(true),
+});
+export type PasswordResetRequested = z.infer<typeof passwordResetRequestedSchema>;
+
+export const resetPasswordSchema = z.object({
+  token: z
+    .string(required("Reset token is required"))
+    .min(1, "Reset token is required")
+    .max(200)
+    .meta({ description: "The `token` query parameter from the emailed link", example: "q8V1u3...base64url" }),
+  password: newPassword,
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 export const userRoleSchema = z.enum(["customer", "admin"]);
 export type UserRole = z.infer<typeof userRoleSchema>;

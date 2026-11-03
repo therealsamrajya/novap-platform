@@ -71,6 +71,12 @@ const me = await fetch(`${API}/api/auth/me`, { credentials: "include" }); // 200
 - `POST /api/auth/logout` returns 204, even when not logged in.
 - `GET /api/auth/me` returns the `User`, or 401. Use it on app load to check whether someone is logged in.
 - Emails are trimmed and lowercased. Passwords: 10–128 characters.
+- **Forgot password**: `POST /api/auth/password/forgot { email }` always answers 202, so it never reveals whether the
+  account exists. If it does, the email links to `SHOP_URL/reset-password?token=...` (valid 1 hour, single use; a newer
+  request voids the older link). The shop's reset page sends `POST /api/auth/password/reset { token, password }`:
+  204 on success, 400 if the link is invalid, used or expired. A reset logs the account out everywhere, so send the user
+  to the login page afterwards. The reset page should set `Referrer-Policy: no-referrer`, so the token in its URL
+  isn't passed on to other sites.
 - Sessions last **30 days** for customers and **12 hours** for admins. Both renew while in use, so only idle sessions expire.
 - Everything under `/api/admin/*` requires an admin: 401 if not logged in, 403 if not an admin.
 - Nobody becomes admin through the API. Locally the seed has `admin@novap.local` / `novap-admin-dev`.
