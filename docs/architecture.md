@@ -49,7 +49,7 @@ Services stay free of Hono, so later phases (webhooks, admin) can reuse them, an
 - **stripe_events**: processed webhook ids, kept for idempotency
 - **contact_messages**: contact form inbox (`new | read | archived`)
 
-The full definitions, with comments, are in `apps/api/src/db/schema.ts`.
+The full definitions, with comments, are in `apps/api/src/db/schema.ts`. For ER and class diagrams, see [diagrams.md](diagrams.md).
 
 ## Key decisions
 
