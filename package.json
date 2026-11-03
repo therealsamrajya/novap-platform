@@ -5,6 +5,7 @@
   "scripts": {
     "dev:api": "pnpm --filter @novap/api dev",
     "dev:admin": "pnpm --filter @novap/admin dev",
+    "dev:shop": "pnpm --filter @novap/shop dev",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
