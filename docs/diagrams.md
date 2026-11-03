@@ -327,7 +327,7 @@ classDiagram
     }
     class AppEnv {
         <<type>>
-        Bindings: Env  DB, BUCKET, SHOP_URL, ADMIN_URL
+        Bindings: Env  DB, BUCKET, SHOP_URL, ADMIN_URL, STRIPE_*, shipping vars
         Variables: user  User or null
     }
 
@@ -348,6 +348,12 @@ classDiagram
     }
     class contactRoute {
         <<route /api/contact>>
+    }
+    class checkoutRoute {
+        <<route /api/checkout>>
+    }
+    class stripeRoute {
+        <<route /api/stripe>>
     }
     class adminCategoriesRoute {
         <<route /api/admin/categories>>
@@ -399,6 +405,17 @@ classDiagram
     class contactService {
         <<services/contact.ts>>
         submitContactMessage(db, input)
+    }
+    class checkoutService {
+        <<services/checkout.ts>>
+        createCheckout(db, stripe, config, input, user) CheckoutCreated
+        cancelPendingOrder(db, orderId) boolean
+        getCheckoutSessionStatus(db, sessionId) CheckoutSessionStatus?
+        shippingFor(subtotalCents, config) number
+    }
+    class stripeWebhookService {
+        <<services/stripe-webhook.ts>>
+        handleStripeEvent(db, event)
     }
     class adminCatalogService {
         <<services/admin-catalog.ts>>
@@ -457,6 +474,10 @@ classDiagram
         imageUrl(r2Key)
         sniffImageType(bytes) type, ext
     }
+    class stripeLib {
+        <<lib/stripe.ts>>
+        getStripe(env) Stripe
+    }
 
     class Db {
         <<db/client.ts — Drizzle over D1>>
@@ -472,6 +493,9 @@ classDiagram
     class R2 {
         <<Cloudflare R2 bucket>>
     }
+    class Stripe {
+        <<Stripe API — Checkout Sessions, webhook signatures>>
+    }
 
     App --> AppEnv
     App --> healthRoute
@@ -480,6 +504,8 @@ classDiagram
     App --> productsRoute
     App --> imagesRoute
     App --> contactRoute
+    App --> checkoutRoute
+    App --> stripeRoute
     App --> adminCategoriesRoute
     App --> adminProductsRoute
     App --> adminVariantsRoute
@@ -493,6 +519,13 @@ classDiagram
     categoriesRoute --> catalogService
     productsRoute --> catalogService
     contactRoute --> contactService
+    checkoutRoute --> checkoutService
+    checkoutRoute ..> stripeLib
+    stripeRoute --> stripeWebhookService
+    stripeRoute ..> stripeLib
+    stripeWebhookService --> checkoutService
+    checkoutService --> Stripe
+    stripeLib ..> Stripe
     imagesRoute --> R2
     adminCategoriesRoute --> adminCatalogService
     adminProductsRoute --> adminCatalogService
@@ -509,6 +542,8 @@ classDiagram
     productsRoute ..> openapiLib
     imagesRoute ..> openapiLib
     contactRoute ..> openapiLib
+    checkoutRoute ..> openapiLib
+    stripeRoute ..> openapiLib
     adminCategoriesRoute ..> openapiLib
     adminProductsRoute ..> openapiLib
     adminVariantsRoute ..> openapiLib
@@ -534,10 +569,12 @@ classDiagram
     authService --> Db
     catalogService --> Db
     contactService --> Db
+    checkoutService --> Db
+    stripeWebhookService --> Db
     adminCatalogService --> Db
     adminImagesService --> Db
     adminContactService --> Db
     Db --> schema
 ```
 
-Rule of thumb: arrows only point down (route → service → Db). Services never import from `routes/` or Hono, so other routes and later phases (e.g. the Stripe webhook) can reuse them.
+Rule of thumb: arrows only point down (route → service → Db). Services never import from `routes/` or Hono, so other routes can reuse them: the Stripe webhook service calls `cancelPendingOrder` from the checkout service.

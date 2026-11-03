@@ -22,6 +22,7 @@ import { contactRoute } from "./routes/contact";
 import { healthRoute } from "./routes/health";
 import { imagesRoute } from "./routes/images";
 import { productsRoute } from "./routes/products";
+import { stripeRoute } from "./routes/stripe";
 
 // `Env` is generated from wrangler.jsonc by `pnpm types` (worker-configuration.d.ts).
 // Variables: per-request values set by middleware, read with c.get("user") / c.var.user.
@@ -59,6 +60,7 @@ app.route("/api/products", productsRoute);
 app.route("/api/images", imagesRoute);
 app.route("/api/contact", contactRoute);
 app.route("/api/checkout", checkoutRoute);
+app.route("/api/stripe", stripeRoute);
 
 app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/products", adminProductsRoute);

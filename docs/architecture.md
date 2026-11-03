@@ -6,15 +6,17 @@
  shop (phase 8) ─┐                     ┌─ D1  (SQLite: catalog, users, orders)
                  ├─ HTTPS ─► API Worker┤
 admin (phase 8) ─┘   (CORS + cookie)   ├─ R2  (product images)
-                                       └─ Stripe (Checkout + webhook, phase 6)
+                                       └─ Stripe (Checkout + webhook)
 ```
 
 - **API**: a single Cloudflare Worker (`apps/api`) built with [Hono](https://hono.dev). All routes live under `/api/*`.
 - **Database**: Cloudflare D1, accessed through [Drizzle ORM](https://orm.drizzle.team). The schema is in `apps/api/src/db/schema.ts`.
 - **Images**: Cloudflare R2. The database stores only the R2 key (`product_images.r2_key`).
+- **Payments**: Stripe Checkout (hosted payment page). Stripe tells the API about payments through a signed webhook.
 - **Shared package**: `@novap/shared` holds the zod schemas and types. The API validates with them, and the frontends use the same schemas for forms. This gives one source of truth.
 
 Local dev (`wrangler dev`) simulates D1 and R2 in `apps/api/.wrangler/`. No Cloudflare account is needed.
+Checkout needs a Stripe test-mode key and the Stripe CLI to forward webhooks (see [api.md](api.md#checkout)).
 
 ## Request flow
 
@@ -29,6 +31,10 @@ request
 errors anywhere → middleware/error.ts → { error, issues? }
 ```
 
+The Stripe webhook (`POST /api/stripe/webhook`) goes through the same chain but uses no cookie: Stripe's servers
+call it, and the `Stripe-Signature` header is its only authentication. `csrf()` lets it through because it only
+checks form content types, and Stripe sends JSON.
+
 ### Layers
 
 | Layer | Folder | Knows about Hono? | Job |
@@ -38,7 +44,7 @@ errors anywhere → middleware/error.ts → { error, issues? }
 | Lib | `src/lib/` | no | Small pure helpers |
 | Schema | `packages/shared` | no | Input validation and shared types |
 
-Services stay free of Hono, so other routes and later phases (e.g. the Stripe webhook) can reuse them. and they can be unit-tested without HTTP.
+Services stay free of Hono, so other routes can reuse them (the Stripe webhook reuses `cancelPendingOrder` from the checkout service), and they can be unit-tested without HTTP.
 
 ## Data model (summary)
 
@@ -50,6 +56,39 @@ Services stay free of Hono, so other routes and later phases (e.g. the Stripe we
 - **contact_messages**: contact form inbox (`new | read | archived`)
 
 The full definitions, with comments, are in `apps/api/src/db/schema.ts`. For ER and class diagrams, see [diagrams.md](diagrams.md).
+
+## Checkout flow
+
+```
+shop                     API                                   D1 / Stripe
+ │ POST /api/checkout ──► read prices + stock                   D1
+ │                        reserve stock (conditional decrement) D1
+ │                        insert order "pending" + item snapshot D1
+ │                        create Checkout Session (31 min) ───► Stripe
+ │ ◄── { checkoutUrl } ──
+ │ redirect ─────────────────────────────────────────────────► Stripe page (address, card)
+ │                                                             │
+ │                        POST /api/stripe/webhook ◄──────────┘ signed event
+ │                          completed → order "paid", address saved
+ │                          expired   → order "cancelled", stock put back
+ │                          refunded  → order "refunded"
+ │ ◄─ redirect to SHOP_URL/checkout/success?session_id=…
+ │ GET /api/checkout/sessions/{id} → status (poll until "paid")
+```
+
+Code: `services/checkout.ts` (steps up to the session, plus `cancelPendingOrder`), `services/stripe-webhook.ts`
+(event handlers), `routes/checkout.ts`, `routes/stripe.ts`, `lib/stripe.ts`.
+
+- **Stock is reserved before payment.** Each line is a single `UPDATE … SET stock = stock - q WHERE id = ? AND stock >= q`,
+  all in one batch. If any line didn't match, someone else took the stock first: the lines that did match are put back
+  and the request gets a 409.
+- **Every undo goes through `cancelPendingOrder`.** In one atomic batch it puts the items back in stock and sets the order
+  to `cancelled`, but only while the order is still `pending`. A repeated webhook can't put stock back twice.
+- **If a step fails part way**, earlier steps are undone: a failed order insert puts the stock back, and a failed Stripe call
+  cancels the order.
+- **Webhook idempotency**: an event already in `stripe_events` is skipped. Events are recorded only *after* they are
+  handled, so a failed attempt (500) is retried by Stripe rather than lost. Each handler also checks the order's current
+  status before changing it, so an event that gets past the check twice (two deliveries at the same moment) does no harm.
 
 ## Key decisions
 
@@ -75,3 +114,12 @@ The full definitions, with comments, are in `apps/api/src/db/schema.ts`. For ER 
 | Public catalog hides products with no active variant | A product without a buyable variant can't be sold, so the list, the detail page and category counts all agree |
 | API docs generated from code: OpenAPI (`@hono/zod-openapi`) and Swagger UI at `/api/docs` | The zod schemas that validate requests also produce the docs, so the docs can't drift from the code. Shared schemas stay plain zod (`.meta()`), so the frontends don't depend on Hono |
 | Product search uses `LIKE`, not FTS5 | The catalog is small, so a full scan is cheap. It stays in Drizzle with no hand-written SQL. Search lives in one service function, so it can switch to FTS5 later without changing the API |
+| Stock reserved when checkout starts, released when the Stripe session expires | Stock is small, so overselling the last unit is a real risk. The cost: an abandoned checkout holds stock for about 30 minutes |
+| Stripe Checkout (hosted page), not Stripe Elements | Card data never touches our code. Stripe also collects the address and phone, so the API has no address form to validate |
+| Cards only (`allowed_payment_method_types: ["card"]`) | Cards settle at once, so `checkout.session.completed` always means paid. Delayed methods (e.g. BECS direct debit) would need the `async_payment_*` events |
+| Prices sent to Stripe as inline `price_data`, no Stripe Products | D1 stays the only catalog. Nothing has to be kept in sync with the Stripe dashboard |
+| Flat shipping rate, free from a threshold, set in `wrangler.jsonc` | Simple for a small AU-only shop. Changing it doesn't need a code change |
+| GST computed as 1/11 of the total, no Stripe Tax | Prices already include GST. Stripe Tax charges per transaction for something a division does |
+| Full refunds mark the order `refunded`; stock is not put back | A returned item may not be resellable. Partial refunds leave the order as it is; the details stay in Stripe |
+| Checkout status endpoint returns no email or address | The session id travels in a URL (browser history, referrers), so it should only show what was bought |
+| Missed `expired` webhooks leave stock held (known gap) | If the webhook is down when a session expires, the order stays `pending`. A scheduled clean-up is planned for phase 9 |

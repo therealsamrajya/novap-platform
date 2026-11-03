@@ -32,3 +32,31 @@ export const checkoutCreatedSchema = z.object({
   expiresAt: z.iso.datetime().meta({ description: "Stock is held until then; unpaid orders are cancelled after it" }),
 });
 export type CheckoutCreated = z.infer<typeof checkoutCreatedSchema>;
+
+export const orderStatusSchema = z
+  .enum(["pending", "paid", "fulfilled", "cancelled", "refunded"])
+  .meta({ description: "pending = waiting for payment. Only the Stripe webhook moves it to paid", example: "paid" });
+export type OrderStatus = z.infer<typeof orderStatusSchema>;
+
+export const orderLineSchema = z.object({
+  productName: z.string().meta({ example: "Reference 01" }),
+  variantLabel: z.string().meta({ example: "Small" }),
+  sku: z.string().meta({ example: "REF01-S" }),
+  unitPriceCents: z.number().int().meta({ example: 4995 }),
+  quantity: z.number().int().meta({ example: 2 }),
+});
+export type OrderLine = z.infer<typeof orderLineSchema>;
+
+// What the shop's success page shows after Stripe redirects back. No address or
+// email: the session id travels in a URL, so it only reveals what was bought.
+export const checkoutSessionStatusSchema = z.object({
+  orderId: z.number().int().meta({ example: 12 }),
+  status: orderStatusSchema,
+  subtotalCents: z.number().int().meta({ example: 12485 }),
+  shippingCents: z.number().int().meta({ example: 995 }),
+  gstCents: z.number().int().meta({ description: "GST included in the total", example: 1225 }),
+  totalCents: z.number().int().meta({ example: 13480 }),
+  items: z.array(orderLineSchema),
+  createdAt: z.iso.datetime(),
+});
+export type CheckoutSessionStatus = z.infer<typeof checkoutSessionStatusSchema>;

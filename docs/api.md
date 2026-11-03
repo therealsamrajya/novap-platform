@@ -8,7 +8,7 @@ Both are generated from the zod schemas the API validates with, so they always m
 Both are disabled when `APP_ENV=production`.
 
 For TypeScript frontends in this repo, import the types directly from `@novap/shared`
-(`ProductSummary`, `ProductDetail`, `Category`, `User`, `Paginated<T>`, `ApiError`, ...).
+(`ProductSummary`, `ProductDetail`, `Category`, `User`, `CheckoutInput`, `CheckoutSessionStatus`, `Paginated<T>`, `ApiError`, ...).
 
 This file covers only the conventions shared by every endpoint.
 
@@ -36,7 +36,7 @@ Every non-2xx response has the same shape. The message is always in `error`.
 | 401 | Not logged in, session expired, or wrong email/password on login |
 | 403 | Logged in but not allowed (e.g. not an admin), or a cross-site form post blocked by CSRF protection |
 | 404 | Resource or route not found |
-| 409 | Conflict, e.g. duplicate email, slug or SKU |
+| 409 | Conflict, e.g. duplicate email, slug or SKU, or a cart item out of stock at checkout |
 | 413 | Upload too large (images: max 5 MB) |
 | 415 | Wrong `Content-Type` (e.g. a JSON route sent a form) |
 | 500 | Server error. Details are logged, never returned |
@@ -79,6 +79,51 @@ const me = await fetch(`${API}/api/auth/me`, { credentials: "include" }); // 200
 
 Testing with curl: keep the cookie in a jar with `-c jar` (save) and `-b jar` (send). A POST with no
 body (logout) also needs `-H "Origin: http://localhost:5173"`; browsers send that header on their own.
+
+### Checkout
+
+Payment happens on Stripe's hosted page. The shop never sees card details.
+
+1. The shop sends the cart: `POST /api/checkout` with `{ items: [{ variantId, quantity }], email }`.
+   Send only ids and quantities. The API reads prices from the database.
+   - **Guests** must send `email`. **Logged-in customers** don't need to: the account email is used, and the order
+     is linked to the account.
+   - Each variant may appear once (merge duplicates in the cart). Max 50 lines, quantity 1–99.
+   - **409** if an item is inactive, deleted or out of stock. `error` says which, e.g.
+     `"Reference 01 (Small): only 3 left"`. Show it and let the buyer fix the cart.
+2. The response is `201 { orderId, checkoutUrl, expiresAt }`. Redirect the browser to `checkoutUrl`.
+   The stock is **held** for the order until `expiresAt` (about 30 minutes).
+3. Stripe collects the shipping address (Australia only), phone and card, then redirects to
+   `SHOP_URL/checkout/success?session_id=cs_...`. If the buyer cancels, it redirects to `SHOP_URL/cart`.
+4. The success page calls `GET /api/checkout/sessions/{session_id}`. It returns status, totals and items,
+   but no email or address. The status can still be `pending` for a few seconds, until Stripe's webhook arrives,
+   so poll every 1–2 seconds until it is `paid`.
+
+**Order status**: `pending` (waiting for payment) → `paid` → `fulfilled`, or `pending` → `cancelled` (session
+expired; stock released), or `paid` → `refunded` (full refund in Stripe). Only the webhook sets `paid`,
+`cancelled` and `refunded`. The redirect back from Stripe changes nothing.
+
+**Shipping**: a flat rate, free from a threshold. Both are `wrangler.jsonc` vars (`SHIPPING_FLAT_CENTS`,
+`FREE_SHIPPING_FROM_CENTS`; currently $9.95, free from $150). GST (1/11 of the total, shipping included) is stored
+on the order for receipts.
+
+**Webhook**: `POST /api/stripe/webhook` is called only by Stripe and verified with the `Stripe-Signature` header.
+Locally, forward events with the [Stripe CLI](https://docs.stripe.com/stripe-cli):
+
+```sh
+stripe login
+stripe listen --events checkout.session.completed,checkout.session.expired,charge.refunded \
+  --forward-to localhost:8787/api/stripe/webhook
+```
+
+Put the printed `whsec_...` in `apps/api/.dev.vars` as `STRIPE_WEBHOOK_SECRET`, next to `STRIPE_SECRET_KEY`
+(a test-mode `sk_test_...` key), then restart `pnpm dev:api`. Test card: `4242 4242 4242 4242`, any future date
+and CVC. Declined: `4000 0000 0000 9995`.
+
+```sh
+curl -s -X POST http://localhost:8787/api/checkout -H "Content-Type: application/json" \
+  -d '{"items":[{"variantId":1,"quantity":2}],"email":"guest@example.com"}'
+```
 
 ### Admin
 

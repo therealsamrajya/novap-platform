@@ -3,6 +3,7 @@ import {
   gstFromInclusive,
   type CheckoutCreated,
   type CheckoutInput,
+  type CheckoutSessionStatus,
   type User,
 } from "@novap/shared";
 import { and, eq, exists, gte, inArray, sql } from "drizzle-orm";
@@ -231,4 +232,30 @@ export async function cancelPendingOrder(db: Db, orderId: number): Promise<boole
       .returning({ id: orders.id }),
   ]);
   return cancelled.length > 0;
+}
+
+// For the shop's success page. Right after the redirect the status may still be
+// "pending" for a few seconds, until Stripe's webhook arrives; the page can poll.
+export async function getCheckoutSessionStatus(db: Db, sessionId: string): Promise<CheckoutSessionStatus | undefined> {
+  const order = await db.query.orders.findFirst({
+    where: eq(orders.stripeSessionId, sessionId),
+    with: { items: { orderBy: (item, { asc }) => asc(item.id) } },
+  });
+  if (!order) return undefined;
+  return {
+    orderId: order.id,
+    status: order.status,
+    subtotalCents: order.subtotalCents,
+    shippingCents: order.shippingCents,
+    gstCents: order.gstCents,
+    totalCents: order.totalCents,
+    items: order.items.map(({ productName, variantLabel, sku, unitPriceCents, quantity }) => ({
+      productName,
+      variantLabel,
+      sku,
+      unitPriceCents,
+      quantity,
+    })),
+    createdAt: order.createdAt.toISOString(),
+  };
 }
