@@ -2,7 +2,7 @@ import { createRoute } from "@hono/zod-openapi";
 import { adminVariantSchema, variantUpdateSchema } from "@novap/shared";
 import { HTTPException } from "hono/http-exception";
 import { getDb } from "../../db/client";
-import { cookieAuth, createRouter, errors, idParams, json } from "../../lib/openapi";
+import { adminTags, cookieAuth, createRouter, errors, idParams, json } from "../../lib/openapi";
 import { deleteVariant, updateVariant } from "../../services/admin-catalog";
 
 const AdminVariant = adminVariantSchema.openapi("AdminVariant");
@@ -10,7 +10,7 @@ const VariantUpdate = variantUpdateSchema.openapi("VariantUpdate");
 
 // Variants are created under their product (POST /api/admin/products/:id/variants)
 // and changed here by their own id. Every route sits behind requireAdmin (index.ts).
-const admin = { tags: ["Admin"], security: cookieAuth };
+const admin = { tags: [adminTags.variants], security: cookieAuth };
 const guarded = { 401: errors[401], 403: errors[403], 500: errors[500] };
 const notFound = () => new HTTPException(404, { message: "Variant not found" });
 

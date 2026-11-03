@@ -2,7 +2,7 @@ import { createRoute, z } from "@hono/zod-openapi";
 import { adminCategorySchema, categoryCreateSchema, categoryUpdateSchema } from "@novap/shared";
 import { HTTPException } from "hono/http-exception";
 import { getDb } from "../../db/client";
-import { cookieAuth, createRouter, errors, idParams, json } from "../../lib/openapi";
+import { adminTags, cookieAuth, createRouter, errors, idParams, json } from "../../lib/openapi";
 import {
   createCategory,
   deleteCategory,
@@ -16,7 +16,7 @@ const CategoryCreate = categoryCreateSchema.openapi("CategoryCreate");
 const CategoryUpdate = categoryUpdateSchema.openapi("CategoryUpdate");
 
 // Every route here sits behind requireAdmin (index.ts).
-const admin = { tags: ["Admin"], security: cookieAuth };
+const admin = { tags: [adminTags.categories], security: cookieAuth };
 const guarded = { 401: errors[401], 403: errors[403], 500: errors[500] };
 const notFound = () => new HTTPException(404, { message: "Category not found" });
 

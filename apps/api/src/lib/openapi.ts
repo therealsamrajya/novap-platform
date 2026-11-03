@@ -27,6 +27,7 @@ export const errors = {
   403: json(ApiError, "Logged in, but not allowed (e.g. not an admin)"),
   404: json(ApiError, "Not found"),
   409: json(ApiError, "Conflicts with existing data"),
+  413: json(ApiError, "Request body too large"),
   415: json(ApiError, "Body must be sent with Content-Type: application/json"),
   500: json(ApiError, "Internal server error"),
 } as const;
@@ -46,3 +47,12 @@ export const slugParams = (example: string) =>
 
 export const idParams = (example: number) =>
   z.object({ id: idParamSchema.openapi({ param: { name: "id", in: "path" }, example }) });
+
+// Swagger UI has no nested tags, so admin sections share a prefix and sit together.
+// Listed (with descriptions) in index.ts; the order there is the order in Swagger.
+export const adminTags = {
+  categories: "Admin · Categories",
+  products: "Admin · Products",
+  variants: "Admin · Variants",
+  images: "Admin · Images",
+} as const;

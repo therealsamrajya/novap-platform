@@ -204,3 +204,33 @@ export const adminProductDetailSchema = z.object({
   updatedAt: z.iso.datetime(),
 });
 export type AdminProductDetail = z.infer<typeof adminProductDetailSchema>;
+
+// ---------------------------------------------------------------- images
+
+// SVG is left out on purpose: it can carry scripts, so serving uploads as SVG is an XSS risk.
+export const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"] as const;
+export type ImageType = (typeof IMAGE_TYPES)[number];
+export const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // 5 MB
+export const IMAGES_PER_PRODUCT_MAX = 20;
+
+const imageAlt = z.string().trim().max(200).meta({ description: "Text for screen readers", example: "Reference 02, front" });
+
+// multipart/form-data. The file's type is checked again on the server from its
+// bytes; `type` here is only what the browser claims.
+export const imageUploadSchema = z.strictObject({
+  file: z
+    .file(required("Choose an image file"))
+    .min(1, "The file is empty")
+    .max(IMAGE_MAX_BYTES, "Images must be 5 MB or smaller")
+    .mime([...IMAGE_TYPES], "Use a JPEG, PNG, WebP or AVIF image")
+    // The OpenAPI generator doesn't know z.file(); this is how OpenAPI describes an upload.
+    .meta({ type: "string", format: "binary", description: "JPEG, PNG, WebP or AVIF, max 5 MB" }),
+  alt: imageAlt.default(""),
+});
+export type ImageUploadInput = z.output<typeof imageUploadSchema>;
+
+export const imageUpdateSchema = z
+  .strictObject({ alt: imageAlt, sortOrder })
+  .partial()
+  .refine(notEmpty, notEmptyMessage);
+export type ImageUpdateInput = z.output<typeof imageUpdateSchema>;

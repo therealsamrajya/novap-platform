@@ -6,10 +6,12 @@ import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
 import { HTTPException } from "hono/http-exception";
 import { secureHeaders } from "hono/secure-headers";
+import { adminTags } from "./lib/openapi";
 import { SESSION_COOKIE } from "./lib/session";
 import { loadSession, requireAdmin } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
 import { adminCategoriesRoute } from "./routes/admin/categories";
+import { adminImagesRoute } from "./routes/admin/images";
 import { adminProductsRoute } from "./routes/admin/products";
 import { adminVariantsRoute } from "./routes/admin/variants";
 import { authRoute } from "./routes/auth";
@@ -58,6 +60,7 @@ app.route("/api/contact", contactRoute);
 app.route("/api/admin/categories", adminCategoriesRoute);
 app.route("/api/admin/products", adminProductsRoute);
 app.route("/api/admin/variants", adminVariantsRoute);
+app.route("/api/admin/images", adminImagesRoute);
 
 // ---------------------------------------------------------------- API docs
 // The OpenAPI spec is generated from the zod schemas used for validation, so it
@@ -87,10 +90,14 @@ app.doc31("/api/openapi.json", {
       "`issues` only on 400. Lists return `{ items, page, limit, total }`.",
   },
   tags: [
-    { name: "Admin", description: "Catalogue management. Needs an admin session (401 / 403 otherwise)" },
     { name: "Auth", description: "Register, log in, log out, current user" },
     { name: "Catalog", description: "Public products, categories and images" },
     { name: "Contact", description: "Public contact form" },
+    // Admin sections need an admin session: 401 not logged in, 403 not an admin.
+    { name: adminTags.categories, description: "Create, edit and delete categories. Admin only" },
+    { name: adminTags.products, description: "All products, including inactive ones. Admin only" },
+    { name: adminTags.variants, description: "Sizes / options of a product, with price and stock. Admin only" },
+    { name: adminTags.images, description: "Upload product images to R2, reorder, delete. Admin only" },
     { name: "System", description: "Health and diagnostics" },
   ],
 });
