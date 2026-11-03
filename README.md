@@ -58,6 +58,7 @@ Never edit an old migration file — always generate a new one.
 ## Docs
 
 - [docs/architecture.md](docs/architecture.md) — layers, request flow, data model, key decisions
+- [docs/diagrams.md](docs/diagrams.md) — ER diagram, domain class diagram, API layer diagram (Mermaid)
 - [docs/api.md](docs/api.md) — API conventions; full interactive reference at http://localhost:8787/api/docs (Swagger UI)
 - [CLAUDE.md](CLAUDE.md) + `.claude/skills/` — instructions for Claude Code
 

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NŌVAP API — Diagrams</title>
+<!--
+  Interactive viewer for the diagrams in diagrams.md.
+  Open this file in a browser (needs internet: Mermaid loads from a CDN).
+  The diagram sources below are copies of the mermaid blocks in diagrams.md —
+  when you change one, change the other.
+-->
+<style>
+  :root {
+    --bg: #0f1117; --panel: #171a23; --border: #2a2f3d;
+    --text: #e6e8ee; --muted: #8b92a5; --accent: #8b7cf6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  body { display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: center; gap: 16px; padding: 10px 16px;
+    background: var(--panel); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; font-weight: 600; }
+  nav { display: flex; gap: 4px; }
+  nav button, .tools button {
+    background: transparent; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px 12px; font: inherit; cursor: pointer; }
+  nav button:hover, .tools button:hover { color: var(--text); border-color: var(--muted); }
+  nav button[aria-selected="true"] { color: var(--text); background: #262a38; border-color: var(--accent); }
+  .tools { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .tools span { color: var(--muted); min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .desc { padding: 8px 16px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  .desc code { color: var(--text); background: #262a38; padding: 1px 5px; border-radius: 4px; }
+
+  main { flex: 1; position: relative; overflow: hidden; cursor: grab; }
+  main.dragging { cursor: grabbing; }
+  .view { position: absolute; inset: 0; display: none; }
+  .view.active { display: block; }
+  .stage { position: absolute; top: 0; left: 0; transform-origin: 0 0; }
+  .stage svg { display: block; max-width: none !important; }
+  pre.mermaid { display: none; }
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+  .hint { position: absolute; bottom: 10px; left: 16px; color: var(--muted); font-size: 12px; pointer-events: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>NŌVAP API diagrams</h1>
+  <nav role="tablist">
+    <button role="tab" data-view="er" aria-selected="true">1. Database (ER)</button>
+    <button role="tab" data-view="domain">2. Domain model</button>
+    <button role="tab" data-view="layers">3. API layers</button>
+  </nav>
+  <div class="tools">
+    <button id="zoom-out" title="Zoom out (-)">−</button>
+    <span id="zoom-level">100%</span>
+    <button id="zoom-in" title="Zoom in (+)">+</button>
+    <button id="fit" title="Fit to screen (0)">Fit</button>
+    <button id="download" title="Download as SVG">SVG</button>
+  </div>
+</header>
+
+<div class="desc" data-for="er">
+  Every D1 table with columns and keys. Money is integer cents (AUD, GST-inclusive); timestamps are unix seconds.
+  <code>user_id</code> null on an order = guest checkout.
+</div>
+<div class="desc" data-for="domain" hidden>
+  Same data as TypeScript objects, as Drizzle <code>relations()</code> expose them.
+  Filled diamond = composition (children deleted with parent). Plain arrow = association (child survives).
+</div>
+<div class="desc" data-for="layers" hidden>
+  Code dependencies. Solid arrow = calls, dashed = uses helper. Arrows only point down: route → service → <code>Db</code>.
+</div>
+
+<main id="canvas">
+  <div class="loading" id="loading">Rendering diagrams…</div>
+  <div class="view active" id="view-er"><div class="stage"></div></div>
+  <div class="view" id="view-domain"><div class="stage"></div></div>
+  <div class="view" id="view-layers"><div class="stage"></div></div>
+  <div class="hint">Scroll to zoom · drag to pan · 0 to fit</div>
+</main>
+
+<pre class="mermaid" id="src-er">
+erDiagram
+    users ||--o{ sessions : "has"
+    users ||--o{ addresses : "has"
+    users |o--o{ orders : "places (null = guest)"
+    categories |o--o{ products : "groups"
+    products ||--|{ variants : "sold as"
+    products ||--o{ product_images : "shown with"
+    orders ||--|{ order_items : "contains"
+    variants |o--o{ order_items : "snapshot of"
+
+    users {
+        integer id PK
+        text email UK
+        text password_hash
+        text name
+        text role "customer | admin"
+        integer created_at
+        integer updated_at
+    }
+    sessions {
+        text id PK "sha256(token)"
+        integer user_id FK "cascade"
+        integer expires_at
+        integer created_at
+    }
+    addresses {
+        integer id PK
+        integer user_id FK "cascade"
+        text name
+        text line1
+        text line2 "nullable"
+        text city
+        text state
+        text postcode
+        text country "default AU"
+        text phone "nullable"
+        boolean is_default
+        integer created_at
+    }
+    categories {
+        integer id PK
+        text name
+        text slug UK
+        integer sort_order
+        integer created_at
+    }
+    products {
+        integer id PK
+        text slug UK
+        text name
+        text subtitle "nullable"
+        text description
+        integer category_id FK "set null"
+        boolean active
+        boolean featured
+        integer created_at
+        integer updated_at
+    }
+    variants {
+        integer id PK
+        integer product_id FK "cascade"
+        text sku UK
+        text label "e.g. 10 mg"
+        integer price_cents
+        integer compare_at_cents "nullable, sale display"
+        integer stock
+        json attributes "Record&lt;string,string&gt;"
+        boolean active
+        integer sort_order
+        integer created_at
+        integer updated_at
+    }
+    product_images {
+        integer id PK
+        integer product_id FK "cascade"
+        text r2_key "file lives in R2"
+        text alt
+        integer sort_order
+        integer created_at
+    }
+    orders {
+        integer id PK
+        integer user_id FK "set null, nullable"
+        text email
+        text status "pending | paid | fulfilled | cancelled | refunded"
+        text currency "default aud"
+        integer subtotal_cents
+        integer shipping_cents
+        integer gst_cents
+        integer total_cents
+        json shipping_address "ShippingAddress"
+        text stripe_session_id UK
+        text stripe_payment_intent_id
+        integer paid_at "nullable"
+        integer fulfilled_at "nullable"
+        text tracking_number "nullable"
+        integer created_at
+        integer updated_at
+    }
+    order_items {
+        integer id PK
+        integer order_id FK "cascade"
+        integer variant_id FK "set null, nullable"
+        text product_name "snapshot"
+        text variant_label "snapshot"
+        text sku "snapshot"
+        integer unit_price_cents "snapshot"
+        integer quantity
+    }
+    stripe_events {
+        text id PK "evt_..."
+        text type
+        integer processed_at
+    }
+    contact_messages {
+        integer id PK
+        text name
+        text email
+        text subject
+        text message
+        text status "new | read | archived"
+        integer created_at
+    }
+</pre>
+<pre class="mermaid" id="src-domain">
+classDiagram
+    direction TB
+
+    class User {
+        +number id
+        +string email
+        +string passwordHash
+        +string name
+        +UserRole role
+        +Date createdAt
+        +Date updatedAt
+    }
+    class UserRole {
+        &lt;&lt;enumeration&gt;&gt;
+        customer
+        admin
+    }
+    class Session {
+        +string id  sha256 of token
+        +number userId
+        +Date expiresAt
+        +Date createdAt
+    }
+    class Address {
+        +number id
+        +number userId
+        +string name
+        +string line1
+        +string? line2
+        +string city
+        +string state
+        +string postcode
+        +string country
+        +string? phone
+        +boolean isDefault
+    }
+    class Category {
+        +number id
+        +string name
+        +string slug
+        +number sortOrder
+    }
+    class Product {
+        +number id
+        +string slug
+        +string name
+        +string? subtitle
+        +string description
+        +number? categoryId
+        +boolean active
+        +boolean featured
+    }
+    class Variant {
+        +number id
+        +number productId
+        +string sku
+        +string label
+        +number priceCents
+        +number? compareAtCents
+        +number stock
+        +object attributes  JSON map
+        +boolean active
+        +number sortOrder
+    }
+    class ProductImage {
+        +number id
+        +number productId
+        +string r2Key
+        +string alt
+        +number sortOrder
+    }
+    class Order {
+        +number id
+        +number? userId
+        +string email
+        +OrderStatus status
+        +number subtotalCents
+        +number shippingCents
+        +number gstCents
+        +number totalCents
+        +ShippingAddress shippingAddress
+        +string? stripeSessionId
+        +Date? paidAt
+        +Date? fulfilledAt
+        +string? trackingNumber
+    }
+    class OrderStatus {
+        &lt;&lt;enumeration&gt;&gt;
+        pending
+        paid
+        fulfilled
+        cancelled
+        refunded
+    }
+    class ShippingAddress {
+        &lt;&lt;value object in JSON column&gt;&gt;
+        +string name
+        +string line1
+        +string? line2
+        +string city
+        +string state
+        +string postcode
+        +string country
+        +string? phone
+    }
+    class OrderItem {
+        +number id
+        +number orderId
+        +number? variantId
+        +string productName
+        +string variantLabel
+        +string sku
+        +number unitPriceCents
+        +number quantity
+    }
+    class StripeEvent {
+        +string id
+        +string type
+        +Date processedAt
+    }
+    class ContactMessage {
+        +number id
+        +string name
+        +string email
+        +string subject
+        +string message
+        +ContactStatus status
+    }
+    class ContactStatus {
+        &lt;&lt;enumeration&gt;&gt;
+        new
+        read
+        archived
+    }
+
+    User "1" --&gt; "*" Session : sessions
+    User "1" --&gt; "*" Address : addresses
+    User "0..1" --&gt; "*" Order : orders
+    User ..&gt; UserRole
+    Category "0..1" --&gt; "*" Product : products
+    Product "1" *-- "*" Variant : variants
+    Product "1" *-- "*" ProductImage : images
+    Order "1" *-- "1..*" OrderItem : items
+    Order *-- ShippingAddress
+    Order ..&gt; OrderStatus
+    OrderItem "*" --&gt; "0..1" Variant : variant
+    ContactMessage ..&gt; ContactStatus
+</pre>
+<pre class="mermaid" id="src-layers">
+classDiagram
+    direction TB
+
+    class App {
+        &lt;&lt;index.ts — OpenAPIHono app&gt;&gt;
+        secureHeaders()
+        cors()
+        csrf()
+        loadSession
+        requireAdmin on admin routes
+        errorHandler
+    }
+    class AppEnv {
+        &lt;&lt;type&gt;&gt;
+        Bindings: Env  DB, BUCKET, SHOP_URL, ADMIN_URL
+        Variables: user  User or null
+    }
+
+    class healthRoute {
+        &lt;&lt;route /api/health&gt;&gt;
+    }
+    class authRoute {
+        &lt;&lt;route /api/auth&gt;&gt;
+    }
+    class categoriesRoute {
+        &lt;&lt;route /api/categories&gt;&gt;
+    }
+    class productsRoute {
+        &lt;&lt;route /api/products&gt;&gt;
+    }
+    class imagesRoute {
+        &lt;&lt;route /api/images&gt;&gt;
+    }
+    class contactRoute {
+        &lt;&lt;route /api/contact&gt;&gt;
+    }
+
+    class authMiddleware {
+        &lt;&lt;middleware/auth.ts&gt;&gt;
+        loadSession
+        requireAuth
+        requireAdmin
+        currentUser(c) User
+        setSessionCookie(c, token, expiresAt)
+        clearSessionCookie(c)
+        getSessionToken(c)
+    }
+    class errorMiddleware {
+        &lt;&lt;middleware/error.ts&gt;&gt;
+        errorHandler(err, c)
+    }
+
+    class authService {
+        &lt;&lt;services/auth.ts&gt;&gt;
+        createUser(db, input) User?
+        verifyCredentials(db, input) User?
+        createSession(db, user) token, expiresAt
+        getSessionUser(db, token) User?
+        deleteSession(db, token)
+    }
+    class catalogService {
+        &lt;&lt;services/catalog.ts&gt;&gt;
+        listCategories(db) Category[]
+        getCategoryBySlug(db, slug) Category?
+        listProducts(db, query) Paginated~ProductSummary~
+        getProductBySlug(db, slug) ProductDetail?
+    }
+    class contactService {
+        &lt;&lt;services/contact.ts&gt;&gt;
+        submitContactMessage(db, input)
+    }
+
+    class openapiLib {
+        &lt;&lt;lib/openapi.ts&gt;&gt;
+        createRouter()
+        json(schema, description)
+        errors
+        cookieAuth
+        slugParams(example)
+    }
+    class passwordLib {
+        &lt;&lt;lib/password.ts&gt;&gt;
+        hashPassword(pw) string
+        verifyPassword(pw, stored) boolean
+    }
+    class sessionLib {
+        &lt;&lt;lib/session.ts&gt;&gt;
+        SESSION_COOKIE
+        sessionTtlMs(role)
+        newSessionToken()
+        hashSessionToken(token)
+    }
+    class paginationLib {
+        &lt;&lt;lib/pagination.ts&gt;&gt;
+        pageOffset(page, limit)
+        paginated(items, total, page, limit)
+    }
+    class sqlLib {
+        &lt;&lt;lib/sql.ts&gt;&gt;
+        containsText(column, term)
+    }
+    class imagesLib {
+        &lt;&lt;lib/images.ts&gt;&gt;
+        imageUrl(r2Key)
+    }
+
+    class Db {
+        &lt;&lt;db/client.ts — Drizzle over D1&gt;&gt;
+        getDb(d1) Db
+    }
+    class schema {
+        &lt;&lt;db/schema.ts&gt;&gt;
+        tables + relations
+    }
+    class shared {
+        &lt;&lt;packages/shared — zod schemas + types&gt;&gt;
+    }
+    class R2 {
+        &lt;&lt;Cloudflare R2 bucket&gt;&gt;
+    }
+
+    App --&gt; AppEnv
+    App --&gt; healthRoute
+    App --&gt; authRoute
+    App --&gt; categoriesRoute
+    App --&gt; productsRoute
+    App --&gt; imagesRoute
+    App --&gt; contactRoute
+    App --&gt; authMiddleware
+    App --&gt; errorMiddleware
+
+    authRoute --&gt; authService
+    authRoute --&gt; authMiddleware
+    categoriesRoute --&gt; catalogService
+    productsRoute --&gt; catalogService
+    contactRoute --&gt; contactService
+    imagesRoute --&gt; R2
+
+    healthRoute ..&gt; openapiLib
+    authRoute ..&gt; openapiLib
+    categoriesRoute ..&gt; openapiLib
+    productsRoute ..&gt; openapiLib
+    imagesRoute ..&gt; openapiLib
+    contactRoute ..&gt; openapiLib
+    openapiLib ..&gt; shared
+
+    authMiddleware --&gt; authService
+    authMiddleware ..&gt; sessionLib
+    authService ..&gt; passwordLib
+    authService ..&gt; sessionLib
+    catalogService ..&gt; paginationLib
+    catalogService ..&gt; sqlLib
+    catalogService ..&gt; imagesLib
+
+    authService --&gt; Db
+    catalogService --&gt; Db
+    contactService --&gt; Db
+    Db --&gt; schema
+</pre>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "dark",
+    securityLevel: "strict",
+    themeVariables: { fontSize: "16px", fontFamily: "system-ui, 'Segoe UI', sans-serif" },
+    er: { useMaxWidth: false },
+    class: { useMaxWidth: false },
+  });
+
+  const ids = ["er", "domain", "layers"];
+  const state = {}; // per view: { scale, x, y, w, h }
+  let current = "er";
+
+  const canvas = document.getElementById("canvas");
+  const zoomLabel = document.getElementById("zoom-level");
+
+  function apply(id) {
+    const s = state[id];
+    document.querySelector(`#view-${id} .stage`).style.transform =
+      `translate(${s.x}px, ${s.y}px) scale(${s.scale})`;
+    if (id === current) zoomLabel.textContent = Math.round(s.scale * 100) + "%";
+  }
+
+  function fit(id) {
+    const s = state[id];
+    const pad = 32;
+    const scale = Math.min((canvas.clientWidth - pad * 2) / s.w, (canvas.clientHeight - pad * 2) / s.h, 2);
+    s.scale = scale;
+    s.x = (canvas.clientWidth - s.w * scale) / 2;
+    s.y = Math.max(pad, (canvas.clientHeight - s.h * scale) / 2);
+    apply(id);
+  }
+
+  // Zoom around a point (cx, cy) in canvas coordinates.
+  function zoom(factor, cx = canvas.clientWidth / 2, cy = canvas.clientHeight / 2) {
+    const s = state[current];
+    const next = Math.min(8, Math.max(0.1, s.scale * factor));
+    s.x = cx - (cx - s.x) * (next / s.scale);
+    s.y = cy - (cy - s.y) * (next / s.scale);
+    s.scale = next;
+    apply(current);
+  }
+
+  function show(id) {
+    current = id;
+    for (const v of ids) {
+      document.getElementById(`view-${v}`).classList.toggle("active", v === id);
+      document.querySelector(`.desc[data-for="${v}"]`).hidden = v !== id;
+      document.querySelector(`nav button[data-view="${v}"]`).setAttribute("aria-selected", v === id);
+    }
+    if (state[id]) apply(id);
+    location.hash = id;
+  }
+
+  // Render each diagram once, while its view is visible so Mermaid can measure text.
+  for (const id of ids) {
+    const view = document.getElementById(`view-${id}`);
+    view.classList.add("active");
+    const { svg } = await mermaid.render(`svg-${id}`, document.getElementById(`src-${id}`).textContent);
+    const stage = view.querySelector(".stage");
+    stage.innerHTML = svg;
+    const el = stage.querySelector("svg");
+    const box = el.viewBox.baseVal;
+    el.setAttribute("width", box.width);
+    el.setAttribute("height", box.height);
+    el.style.width = box.width + "px";
+    el.style.height = box.height + "px";
+    state[id] = { scale: 1, x: 0, y: 0, w: box.width, h: box.height };
+    fit(id);
+    view.classList.remove("active");
+  }
+  document.getElementById("loading").remove();
+  show(ids.includes(location.hash.slice(1)) ? location.hash.slice(1) : "er");
+
+  // ---- controls
+  document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => show(b.dataset.view)));
+  document.getElementById("zoom-in").onclick = () => zoom(1.25);
+  document.getElementById("zoom-out").onclick = () => zoom(0.8);
+  document.getElementById("fit").onclick = () => fit(current);
+  document.getElementById("download").onclick = () => {
+    const svg = document.querySelector(`#view-${current} svg`).outerHTML;
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
+    a.download = `novap-${current}.svg`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const r = canvas.getBoundingClientRect();
+    zoom(e.deltaY < 0 ? 1.1 : 1 / 1.1, e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
+
+  let drag = null;
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    drag = { x: e.clientX, y: e.clientY };
+    canvas.classList.add("dragging");
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const s = state[current];
+    s.x += e.clientX - drag.x;
+    s.y += e.clientY - drag.y;
+    drag = { x: e.clientX, y: e.clientY };
+    apply(current);
+  });
+  canvas.addEventListener("pointerup", () => { drag = null; canvas.classList.remove("dragging"); });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "+" || e.key === "=") zoom(1.25);
+    else if (e.key === "-") zoom(0.8);
+    else if (e.key === "0") fit(current);
+    else if (e.key === "1" || e.key === "2" || e.key === "3") show(ids[+e.key - 1]);
+  });
+  window.addEventListener("resize", () => fit(current));
+</script>
+</body>
+</html>
