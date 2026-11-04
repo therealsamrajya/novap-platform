@@ -10,6 +10,10 @@ admin           ─┘   (CORS + cookie)   ├─ R2  (product images)
                                        └─ Resend (emails)
 ```
 
+That is local dev: three origins, the browser calls the API directly. In production the shop and admin are Workers
+too, serving their built files and forwarding `/api/*` to the API through a service binding, so each browser talks
+to one origin and the API has no public URL. See [deploy.md](deploy.md).
+
 - **API**: a single Cloudflare Worker (`apps/api`) built with [Hono](https://hono.dev). All routes live under `/api/*`.
 - **Database**: Cloudflare D1, accessed through [Drizzle ORM](https://orm.drizzle.team). The schema is in `apps/api/src/db/schema.ts`.
 - **Images**: Cloudflare R2. The database stores only the R2 key (`product_images.r2_key`).
@@ -153,6 +157,7 @@ HTML version, and user text is escaped with `escapeHtml`. `services/notification
 | Rate limits with Cloudflare's rate limiting binding, per IP and endpoint | No extra storage or table. It's approximate (per location, eventually consistent), which is enough to slow password guessing and email spam. 10/min for login, register and checkout; 5/min where each request sends an email |
 | Request logs are JSON objects with a request id, no bodies or emails | Workers Logs indexes the fields (filter by status, path, userId). The id is returned in `X-Request-Id`, so a user's report finds the log line. Leaving out bodies keeps passwords and personal data out of logs |
 | Checkout is AUD only (`adaptive_pricing` off) | Stripe would otherwise offer overseas buyers their own currency, with converted amounts that don't match the GST-inclusive AUD receipts |
+| Production: shop and admin Workers forward `/api/*` to the API over a service binding; the API has no public URL | Each browser talks to one origin, so the `SameSite=Lax` cookie, `csrf()` and image headers work even on `*.workers.dev` (separate sites per subdomain) and keep working unchanged once a domain is added. The shop's forwarder refuses `/api/admin/*`, so admin endpoints are only reachable through the admin's address |
 | Admins can only ship orders (`paid` → `fulfilled` + tracking number) | Payment, cancellation and refunds must match what Stripe did, so only the webhook changes them. A refund made in the Stripe dashboard reaches the order through `charge.refunded` |
 | Resend over plain `fetch`, no SDK | One endpoint is all the API needs. Nothing extra to bundle into the Worker |
 | Password reset tokens: random, stored as sha256, 1 hour, single use, newest only | Same scheme as sessions, so a leaked table can't reset anyone. The token is claimed with one conditional update, so two requests with the same link can't both succeed |

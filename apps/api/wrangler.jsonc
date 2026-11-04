@@ -63,5 +63,54 @@
   // curl "http://localhost:8787/cdn-cgi/handler/scheduled".
   "triggers": {
     "crons": ["*/15 * * * *"]
+  },
+
+  // ---------------------------------------------------------------- production
+  // Deployed with `pnpm --filter @novap/api deploy` (= wrangler deploy --env production).
+  // Bindings and vars are not inherited from the top level, so each one is repeated here.
+  // See docs/deploy.md for creating the D1 database, R2 bucket and secrets.
+  "env": {
+    "production": {
+      // Fixed name: the shop and admin Workers reach the API through a service binding to it.
+      "name": "novap-api",
+      // No public URL. Browsers reach the API through the shop and admin Workers, which forward
+      // /api/* (same origin, so the session cookie and image headers work on workers.dev too).
+      // Stripe's webhook goes through the shop as well: https://<shop>/api/stripe/webhook.
+      "workers_dev": false,
+      "preview_urls": false,
+      "observability": { "enabled": true },
+      "vars": {
+        "APP_ENV": "production",
+        // The shop and admin Workers' URLs. Until there is a domain: their workers.dev addresses,
+        // printed by their first deploy. Used for CORS/csrf, Stripe redirects and email links.
+        "SHOP_URL": "https://novap-shop.samrajyabahadurchand.workers.dev",
+        "ADMIN_URL": "https://novap-admin.samrajyabahadurchand.workers.dev",
+        "SHIPPING_FLAT_CENTS": "995",
+        "FREE_SHIPPING_FROM_CENTS": "15000",
+        // Resend only delivers to the account owner's address until a domain is verified.
+        "EMAIL_FROM": "NŌVAP <onboarding@resend.dev>",
+        "ADMIN_NOTIFY_EMAIL": "samrajyadai@gmail.com"
+      },
+      // Set with `wrangler secret put <NAME> --env production`.
+      "secrets": {
+        "required": ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET", "RESEND_API_KEY"]
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "novap-db-production",
+          // From `wrangler d1 create novap-db-production`.
+          "database_id": "8e4b1937-00df-42e1-926e-dcbf0608c2ca",
+          "migrations_dir": "src/db/migrations"
+        }
+      ],
+      "r2_buckets": [{ "binding": "BUCKET", "bucket_name": "novap-images-production" }],
+      // Separate namespace ids from local dev, so the counters never mix.
+      "ratelimits": [
+        { "name": "RATE_LIMIT", "namespace_id": "2001", "simple": { "limit": 10, "period": 60 } },
+        { "name": "RATE_LIMIT_STRICT", "namespace_id": "2002", "simple": { "limit": 5, "period": 60 } }
+      ],
+      "triggers": { "crons": ["*/15 * * * *"] }
+    }
   }
 }

@@ -4,3 +4,6 @@ dist/
 .dev.vars
 .env
 *.log
+
+# One-time secrets file for the first production deploy (docs/deploy.md). Delete after use.
+.prod.secrets
