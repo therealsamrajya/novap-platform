@@ -4,10 +4,10 @@ import {
   type ImageUpdateInput,
   type ImageUploadInput,
 } from "@novap/shared";
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, sql } from "drizzle-orm";
 import { HTTPException } from "hono/http-exception";
 import type { Db } from "../db/client";
-import { productImages, products } from "../db/schema";
+import { productImages, products, variants } from "../db/schema";
 import { imageUrl, sniffImageType } from "../lib/images";
 
 // Product images: the file lives in R2, the row in product_images holds its key,
@@ -19,8 +19,19 @@ const toAdminImage = (row: ImageRow): AdminProductImage => ({
   id: row.id,
   url: imageUrl(row.r2Key),
   alt: row.alt,
+  variantId: row.variantId,
   sortOrder: row.sortOrder,
 });
+
+// An image can only be tied to a variant of its own product.
+async function assertVariantOfProduct(db: Db, productId: number, variantId: number | null | undefined) {
+  if (variantId == null) return;
+  const variant = await db.query.variants.findFirst({
+    columns: { id: true },
+    where: and(eq(variants.id, variantId), eq(variants.productId, productId)),
+  });
+  if (!variant) throw new HTTPException(400, { message: "That variant doesn't belong to this product" });
+}
 
 export async function uploadProductImage(
   db: Db,
@@ -30,6 +41,7 @@ export async function uploadProductImage(
 ): Promise<AdminProductImage | undefined> {
   const product = await db.query.products.findFirst({ columns: { id: true }, where: eq(products.id, productId) });
   if (!product) return undefined;
+  await assertVariantOfProduct(db, productId, input.variantId);
 
   const [stats] = await db
     .select({ total: count(), maxSort: sql<number | null>`max(${productImages.sortOrder})` })
@@ -52,7 +64,7 @@ export async function uploadProductImage(
   try {
     const [row] = await db
       .insert(productImages)
-      .values({ productId, r2Key, alt: input.alt, sortOrder: (stats?.maxSort ?? -1) + 1 })
+      .values({ productId, variantId: input.variantId ?? null, r2Key, alt: input.alt, sortOrder: (stats?.maxSort ?? -1) + 1 })
       .returning();
     return toAdminImage(row!);
   } catch (err) {
@@ -63,6 +75,11 @@ export async function uploadProductImage(
 }
 
 export async function updateProductImage(db: Db, id: number, input: ImageUpdateInput): Promise<AdminProductImage | undefined> {
+  if (input.variantId != null) {
+    const image = await db.query.productImages.findFirst({ columns: { productId: true }, where: eq(productImages.id, id) });
+    if (!image) return undefined;
+    await assertVariantOfProduct(db, image.productId, input.variantId);
+  }
   const [row] = await db.update(productImages).set(input).where(eq(productImages.id, id)).returning();
   return row && toAdminImage(row);
 }

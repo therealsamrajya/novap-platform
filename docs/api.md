@@ -180,6 +180,9 @@ Variants / Images / Orders / Contact inbox**.
   set `active: false` (products, variants) or `status: "archived"` (contact messages).
 - **Images**: `POST /api/admin/products/{id}/images` as `multipart/form-data` with `file` and optional `alt`.
   JPEG, PNG, WebP or AVIF (checked from the file's bytes), max 5 MB, max 20 per product.
+  Optional `variantId` (upload, or `PATCH /api/admin/images/{id}`) ties an image to one variant, e.g. a colour
+  or flavour; `null` = shared by all variants. The shop shows the picked variant's images first, then the shared ones
+  (`imagesForVariant()` in `@novap/shared`).
 - **Orders**: `GET /api/admin/orders` hides `pending` (unpaid) checkouts unless you ask for `?status=pending`;
   `?status=paid` is the "to ship" list. `?q=` matches the email, or the order number (`12` or `#12`).
   The only manual change is shipping: `PATCH /api/admin/orders/{id}` with `{ "status": "fulfilled", "trackingNumber": "..." }`,

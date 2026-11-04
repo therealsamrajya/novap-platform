@@ -150,7 +150,8 @@ const addImage = createRoute({
   path: "/{id}/images",
   summary: "Upload an image",
   description:
-    "multipart/form-data with `file` (JPEG, PNG, WebP or AVIF, max 5 MB) and optional `alt`. " +
+    "multipart/form-data with `file` (JPEG, PNG, WebP or AVIF, max 5 MB), optional `alt` and optional " +
+    "`variantId` (a variant of this product; leave out for an image shared by all variants). " +
     "The type is checked from the file's bytes, not its name. Added at the end of the display order. " +
     `409 when the product already has ${IMAGES_PER_PRODUCT_MAX} images.`,
   // Rejects oversized bodies while streaming, before the upload is read into memory.

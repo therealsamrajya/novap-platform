@@ -14,13 +14,16 @@ const admin = { tags: [adminTags.images], security: cookieAuth };
 const guarded = { 401: errors[401], 403: errors[403], 500: errors[500] };
 const notFound = () => new HTTPException(404, { message: "Image not found" });
 
-// PATCH /api/admin/images/:id — change alt text or display order
+// PATCH /api/admin/images/:id — change alt text, display order or variant
 const update = createRoute({
   ...admin,
   method: "patch",
   path: "/{id}",
   summary: "Update an image",
-  description: "Only the fields sent are changed. The file itself can't be replaced: upload a new image and delete this one.",
+  description:
+    "Only the fields sent are changed. `variantId` ties the image to a variant of the same product " +
+    "(400 otherwise); `null` makes it shared by all variants. " +
+    "The file itself can't be replaced: upload a new image and delete this one.",
   request: {
     params: idParams(5),
     body: { content: { "application/json": { schema: ImageUpdate } }, required: true },
