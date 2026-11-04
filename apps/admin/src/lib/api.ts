@@ -1,6 +1,7 @@
 import type { ApiError } from "@novap/shared";
 
 // Base URL of the API. Image urls from the API are paths ("/api/images/..."), so they need it too.
+// Production builds set it to "" (.env.production): the app's own Worker forwards /api/* to the API.
 export const API_URL = (import.meta.env.VITE_API_URL ?? "http://localhost:8787").replace(/\/$/, "");
 
 export const assetUrl = (path: string) => `${API_URL}${path}`;

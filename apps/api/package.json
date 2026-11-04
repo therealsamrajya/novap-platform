@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev --test-scheduled",
-    "deploy": "wrangler deploy",
+    "deploy": "wrangler deploy --env production",
     "types": "wrangler types",
     "typecheck": "tsc -p .",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply novap-db --local",
-    "db:migrate:remote": "wrangler d1 migrations apply novap-db --remote",
+    "db:migrate:remote": "wrangler d1 migrations apply novap-db-production --remote --env production",
     "db:seed:local": "wrangler d1 execute novap-db --local --file=src/db/seed.sql",
     "db:reset:local": "node scripts/reset-local-db.mjs && pnpm db:migrate:local && pnpm db:seed:local"
   },

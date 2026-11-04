@@ -44,6 +44,7 @@ See [docs/api.md](docs/api.md#checkout).
 | `pnpm --filter @novap/api db:generate` | Create a new SQL migration after editing `src/db/schema.ts` |
 | `pnpm --filter @novap/api db:migrate:local` | Apply migrations to the local database |
 | `pnpm --filter @novap/api db:reset:local` | Wipe local DB, migrate, load `seed.sql` sample data. Stop `pnpm dev:api` first |
+| `pnpm --filter @novap/<api\|shop\|admin> run deploy` | Deploy to production, API first. See [docs/deploy.md](docs/deploy.md) |
 
 ## Database workflow
 
@@ -66,6 +67,7 @@ Never edit an old migration file — always generate a new one.
 
 - [docs/architecture.md](docs/architecture.md) — layers, request flow, data model, key decisions
 - [docs/diagrams.md](docs/diagrams.md) — ER diagram, domain class diagram, API layer diagram (Mermaid)
+- [docs/deploy.md](docs/deploy.md) — production on Cloudflare: first deploy, later deploys, logs, adding the domain
 - [docs/api.md](docs/api.md) — API conventions; full interactive reference at http://localhost:8787/api/docs (Swagger UI)
 - [CLAUDE.md](CLAUDE.md) + `.claude/skills/` — instructions for Claude Code
 
@@ -79,4 +81,4 @@ Never edit an old migration file — always generate a new one.
 6. [x] Checkout — Stripe Checkout, webhook, stock, guest + user orders
 7. [x] Emails + account — confirmations, password reset, order history, contact notifications
 8. [x] Frontends — admin dashboard, storefront
-9. [ ] Hardening + deploy — rate limits, logging, environments, domain
+9. [ ] Hardening + deploy — rate limits, logging, environments, domain (live on workers.dev; only the custom domain is left, see [docs/deploy.md](docs/deploy.md#adding-the-domain-later))

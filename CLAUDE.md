@@ -203,6 +203,15 @@ Every non-2xx response from the API has exactly this shape, with no exceptions:
 - Messages are short, safe to show the user, and don't leak internals (no SQL, no stack, no whether an email exists on login).
 - 500s always use the generic `"Internal server error"`. Real details go only to `console.error`.
 
+## Production
+
+Deployed as three Workers (`novap-api` with `--env production`, `novap-shop`, `novap-admin`); runbook in
+[docs/deploy.md](docs/deploy.md). `apps/api/wrangler.jsonc` top level is local dev; `env.production` repeats every
+binding and var (they are not inherited). Shop/admin `wrangler.jsonc` and `worker/index.ts` are production only;
+`.env.production` builds them with `VITE_API_URL=` so they call `/api` on their own origin.
+Deploy the API before the shop and admin. Never put secrets in `wrangler.jsonc`; use `wrangler secret put --env production`.
+Production D1 from the Bash tool: `CI=true node node_modules/wrangler/bin/wrangler.js d1 execute novap-db-production --remote --env production ...`.
+
 ## Git workflow
 
 - Branch `<type>/<description>`; roadmap phases use `feat/phase-N-<name>`. Never commit to `main`.

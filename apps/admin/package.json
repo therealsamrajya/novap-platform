@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -p . && vite build",
     "preview": "vite preview",
+    "deploy": "pnpm build && wrangler deploy",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "@vitejs/plugin-react": "~6.1.2",
     "tailwindcss": "~4.3.3",
     "typescript": "5.9.3",
-    "vite": "^8.3.5"
+    "vite": "^8.3.5",
+    "wrangler": "^4.130.0"
   }
 }
