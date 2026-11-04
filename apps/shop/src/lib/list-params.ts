@@ -7,7 +7,8 @@ export function useListParams<K extends string>(keys: readonly K[]) {
   const values = Object.fromEntries(keys.map((k) => [k, params.get(k) ?? ""])) as Record<K, string>;
 
   // Changing a filter goes back to page 1; otherwise you could land past the last page.
-  const set = (changes: Partial<Record<K | "page", string | number>>) =>
+  // `replace` swaps the history entry instead of pushing one (search-as-you-type).
+  const set = (changes: Partial<Record<K | "page", string | number>>, opts?: { replace?: boolean }) =>
     setParams((prev) => {
       const next = new URLSearchParams(prev);
       if (!("page" in changes)) next.delete("page");
@@ -16,7 +17,7 @@ export function useListParams<K extends string>(keys: readonly K[]) {
         else next.set(k, String(v));
       }
       return next;
-    });
+    }, opts);
 
   return { page, ...values, set };
 }

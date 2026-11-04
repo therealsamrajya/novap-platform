@@ -26,7 +26,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-zinc-50 text-zinc-900">
-      <aside className="flex w-56 shrink-0 flex-col border-r border-zinc-200 bg-white">
+      <aside className="sticky top-0 flex h-screen w-56 shrink-0 flex-col overflow-y-auto border-r border-zinc-200 bg-white">
         <div className="px-5 py-5 text-lg font-semibold tracking-wide">
           NŌVAP <span className="text-xs font-normal text-zinc-500">admin</span>
         </div>
