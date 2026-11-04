@@ -97,14 +97,17 @@ app.route("/api/admin/contact", adminContactRoute);
 // ---------------------------------------------------------------- API docs
 // The OpenAPI spec is generated from the zod schemas used for validation, so it
 // can't drift from the code. Swagger UI: http://localhost:8787/api/docs
-// Hidden in production so admin routes aren't advertised.
-const docsOutsideProduction: MiddlewareHandler<AppEnv> = async (c, next) => {
+// In production only admins see it (log in on the admin site, then open <admin>/api/docs);
+// everyone else gets 404 so admin routes aren't advertised.
+const docsGuard: MiddlewareHandler<AppEnv> = async (c, next) => {
   // APP_ENV is typed from wrangler.jsonc ("development"); production sets it per environment.
-  if ((c.env.APP_ENV as string) === "production") throw new HTTPException(404, { message: "Not found" });
+  if ((c.env.APP_ENV as string) === "production" && c.var.user?.role !== "admin") {
+    throw new HTTPException(404, { message: "Not found" });
+  }
   await next();
 };
-app.use("/api/openapi.json", docsOutsideProduction);
-app.use("/api/docs", docsOutsideProduction);
+app.use("/api/openapi.json", docsGuard);
+app.use("/api/docs", docsGuard);
 
 app.openAPIRegistry.registerComponent("securitySchemes", "cookieAuth", {
   type: "apiKey",

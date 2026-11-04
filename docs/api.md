@@ -2,6 +2,9 @@
 
 **Interactive docs (Swagger UI): http://localhost:8787/api/docs** (run `pnpm dev:api` first)
 
+In production the docs are admin-only: log in on the admin site, then open `<admin URL>/api/docs`
+(e.g. https://novap-admin.samrajyabahadurchand.workers.dev/api/docs). Anyone else gets 404.
+
 Every endpoint, parameter, response schema and example is listed there, with "Try it out" buttons.
 The raw OpenAPI 3.1 spec is at `/api/openapi.json`. You can import it into Postman or Insomnia, or generate a typed client from it.
 Both are generated from the zod schemas the API validates with, so they always match the code.
