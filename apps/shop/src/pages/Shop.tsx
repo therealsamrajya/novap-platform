@@ -1,5 +1,6 @@
 import { productSortValues, type Category, type Paginated, type ProductSort, type ProductSummary } from "@novap/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { ProductGrid } from "../components/ProductCard";
 import { PageHero, Pagination, QueryState, useTitle } from "../components/ui";
 import { api } from "../lib/api";
@@ -22,6 +23,17 @@ export function ShopPage() {
   });
   const current = categories.data?.find((c) => c.slug === category);
   useTitle(current?.name ?? "Shop");
+
+  // Search as you type: the box is local state, pushed to the URL 300ms after typing stops.
+  // Clearing the box shows everything again without needing Enter.
+  const [search, setSearch] = useState(q);
+  useEffect(() => setSearch(q), [q]); // URL changed elsewhere (Clear filters, back button)
+  useEffect(() => {
+    const next = search.trim();
+    if (next === q) return;
+    const id = setTimeout(() => set({ q: next }, { replace: true }), 300);
+    return () => clearTimeout(id);
+  }, [search, q]); // `set` left out: it is recreated every render
 
   const products = useQuery({
     queryKey: ["products", { page, q, category, sort, inStock }],
@@ -52,17 +64,24 @@ export function ShopPage() {
 
         <div className="mb-10 flex flex-wrap items-end gap-4 border-b border-line pb-8">
           <form
-            key={q}
             className="min-w-56 flex-1 md:max-w-sm"
             onSubmit={(e) => {
               e.preventDefault();
-              set({ q: String(new FormData(e.currentTarget).get("q") ?? "").trim() });
+              set({ q: search.trim() });
             }}
           >
             <label className="label" htmlFor="shop-search">
               Search
             </label>
-            <input id="shop-search" className="input" name="q" type="search" defaultValue={q} placeholder="Name or description" />
+            <input
+              id="shop-search"
+              className="input"
+              name="q"
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Name or description"
+            />
           </form>
           <div className="min-w-48">
             <label className="label" htmlFor="shop-sort">
