@@ -66,7 +66,8 @@
   },
 
   // ---------------------------------------------------------------- production
-  // Deployed with `pnpm --filter @novap/api deploy` (= wrangler deploy --env production).
+  // Deployed with `pnpm --filter @novap/api run deploy` (= wrangler deploy --env production).
+  // (`run` is needed: plain `pnpm deploy` is a built-in pnpm command, not this script.)
   // Bindings and vars are not inherited from the top level, so each one is repeated here.
   // See docs/deploy.md for creating the D1 database, R2 bucket and secrets.
   "env": {
