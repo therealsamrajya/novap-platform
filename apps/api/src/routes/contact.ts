@@ -25,6 +25,7 @@ const submit = createRoute({
     201: json(ContactReceived, "Message received"),
     400: errors[400],
     415: errors[415],
+    429: errors[429],
     500: errors[500],
   },
 });

@@ -34,6 +34,7 @@ const create = createRoute({
     400: errors[400],
     409: errors[409],
     415: errors[415],
+    429: errors[429],
     500: errors[500],
   },
 });

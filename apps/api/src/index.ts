@@ -10,6 +10,8 @@ import { adminTags } from "./lib/openapi";
 import { SESSION_COOKIE } from "./lib/session";
 import { loadSession, requireAdmin } from "./middleware/auth";
 import { errorHandler } from "./middleware/error";
+import { requestLogger } from "./middleware/logger";
+import { rateLimit } from "./middleware/rate-limit";
 import { adminCategoriesRoute } from "./routes/admin/categories";
 import { adminContactRoute } from "./routes/admin/contact";
 import { adminImagesRoute } from "./routes/admin/images";
@@ -25,12 +27,16 @@ import { healthRoute } from "./routes/health";
 import { imagesRoute } from "./routes/images";
 import { productsRoute } from "./routes/products";
 import { stripeRoute } from "./routes/stripe";
+import { scheduled } from "./scheduled";
 
 // `Env` is generated from wrangler.jsonc by `pnpm types` (worker-configuration.d.ts).
 // Variables: per-request values set by middleware, read with c.get("user") / c.var.user.
-export type AppEnv = { Bindings: Env; Variables: { user: User | null } };
+export type AppEnv = { Bindings: Env; Variables: { user: User | null; requestId: string } };
 
 const app = new OpenAPIHono<AppEnv>();
+
+// First, so it times the whole request and every response (errors too) gets X-Request-Id.
+app.use("*", requestLogger);
 
 // The default Cross-Origin-Resource-Policy is same-origin, which stops the shop and admin
 // (other origins) from showing product images in <img>. They are on the same site, so
@@ -52,6 +58,17 @@ app.use("/api/*", (c, next) =>
 // csrf() rejects form-style requests whose Origin isn't the shop or admin.
 // (JSON requests from other origins are already blocked by the CORS preflight.)
 app.use("/api/*", (c, next) => csrf({ origin: [c.env.SHOP_URL, c.env.ADMIN_URL] })(c, next));
+
+// Per-IP rate limits (middleware/rate-limit.ts) on endpoints worth abusing: password guessing,
+// sign-up spam, emails sent to strangers, and checkouts that hold stock. After CORS, so
+// preflight requests don't count. Paths are exact, so e.g. GET /api/checkout/sessions/... is free.
+app.use("/api/auth/login", rateLimit("RATE_LIMIT", "login"));
+app.use("/api/auth/register", rateLimit("RATE_LIMIT", "register"));
+app.use("/api/checkout", rateLimit("RATE_LIMIT", "checkout"));
+app.use("/api/auth/password/forgot", rateLimit("RATE_LIMIT_STRICT", "password-forgot"));
+app.use("/api/auth/password/reset", rateLimit("RATE_LIMIT_STRICT", "password-reset"));
+app.use("/api/auth/verify-email/resend", rateLimit("RATE_LIMIT_STRICT", "verify-resend"));
+app.use("/api/contact", rateLimit("RATE_LIMIT_STRICT", "contact"));
 
 // Sets c.var.user (or null) from the session cookie. Never rejects on its own.
 app.use("/api/*", loadSession);
@@ -125,4 +142,5 @@ app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 app.notFound((c) => c.json({ error: "Not found" } satisfies ApiError, 404));
 app.onError(errorHandler);
 
-export default app;
+// fetch: HTTP requests (Hono). scheduled: the cron trigger in wrangler.jsonc.
+export default { fetch: app.fetch, scheduled } satisfies ExportedHandler<Env>;

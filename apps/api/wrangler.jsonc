@@ -46,5 +46,22 @@
       "binding": "BUCKET",
       "bucket_name": "novap-images"
     }
-  ]
+  ],
+
+  // Cloudflare's built-in rate limiter (middleware/rate-limit.ts). Counters are kept per
+  // Cloudflare location and the period can only be 10 or 60 seconds. namespace_id is any
+  // number unique within the account; each namespace counts separately.
+  "ratelimits": [
+    // Login, register, checkout: 10 per minute per IP.
+    { "name": "RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 10, "period": 60 } },
+    // Endpoints that send email or are easy to abuse: 5 per minute per IP.
+    { "name": "RATE_LIMIT_STRICT", "namespace_id": "1002", "simple": { "limit": 5, "period": 60 } }
+  ],
+
+  // Scheduled clean-up (src/scheduled.ts): stale pending orders, expired sessions and tokens.
+  // Locally: `pnpm dev` runs with --test-scheduled; trigger it with
+  // curl "http://localhost:8787/cdn-cgi/handler/scheduled".
+  "triggers": {
+    "crons": ["*/15 * * * *"]
+  }
 }

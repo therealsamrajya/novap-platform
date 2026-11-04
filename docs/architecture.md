@@ -23,8 +23,8 @@ Checkout needs a Stripe test-mode key and the Stripe CLI to forward webhooks (se
 
 ```
 request
-  → secureHeaders, CORS (index.ts)
-  → csrf (blocks cross-site form posts), loadSession (sets c.var.user from the cookie, or null)
+  → requestLogger (X-Request-Id, one log line per request), secureHeaders, CORS (index.ts)
+  → csrf (blocks cross-site form posts), rateLimit on abusable endpoints, loadSession (sets c.var.user from the cookie, or null)
   → requireAdmin on /api/admin/*
   → route  (routes/*.ts, routes/admin/*.ts)  parse + validate input with @novap/shared schemas
   → service (services/*.ts)  Drizzle queries, business rules
@@ -35,6 +35,10 @@ errors anywhere → middleware/error.ts → { error, issues? }
 The Stripe webhook (`POST /api/stripe/webhook`) goes through the same chain but uses no cookie: Stripe's servers
 call it, and the `Stripe-Signature` header is its only authentication. `csrf()` lets it through because it only
 checks form content types, and Stripe sends JSON.
+
+Besides HTTP, the Worker has a cron trigger every 15 minutes (`src/scheduled.ts`, the `scheduled` export in
+`index.ts`). It skips the Hono chain and calls services directly: reconcile stale pending orders with Stripe, then
+delete expired sessions and email tokens.
 
 ### Layers
 
@@ -145,7 +149,10 @@ HTML version, and user text is escaped with `escapeHtml`. `services/notification
 | GST computed as 1/11 of the total, no Stripe Tax | Prices already include GST. Stripe Tax charges per transaction for something a division does |
 | Full refunds mark the order `refunded`; stock is not put back | A returned item may not be resellable. Partial refunds leave the order as it is; the details stay in Stripe |
 | Checkout status endpoint returns no email or address | The session id travels in a URL (browser history, referrers), so it should only show what was bought |
-| Missed `expired` webhooks leave stock held (known gap) | If the webhook is down when a session expires, the order stays `pending`. A scheduled clean-up is planned for phase 9 |
+| Stale pending orders reconciled with Stripe every 15 minutes (cron trigger, `services/maintenance.ts`) | If the `expired` (or `completed`) webhook is missed, the order would hold stock forever. The job asks Stripe what happened instead of assuming expiry: a paid session is marked paid (with its confirmation email), an expired one cancelled. Cancelling blindly could release stock that was actually sold |
+| Rate limits with Cloudflare's rate limiting binding, per IP and endpoint | No extra storage or table. It's approximate (per location, eventually consistent), which is enough to slow password guessing and email spam. 10/min for login, register and checkout; 5/min where each request sends an email |
+| Request logs are JSON objects with a request id, no bodies or emails | Workers Logs indexes the fields (filter by status, path, userId). The id is returned in `X-Request-Id`, so a user's report finds the log line. Leaving out bodies keeps passwords and personal data out of logs |
+| Checkout is AUD only (`adaptive_pricing` off) | Stripe would otherwise offer overseas buyers their own currency, with converted amounts that don't match the GST-inclusive AUD receipts |
 | Admins can only ship orders (`paid` → `fulfilled` + tracking number) | Payment, cancellation and refunds must match what Stripe did, so only the webhook changes them. A refund made in the Stripe dashboard reaches the order through `charge.refunded` |
 | Resend over plain `fetch`, no SDK | One endpoint is all the API needs. Nothing extra to bundle into the Worker |
 | Password reset tokens: random, stored as sha256, 1 hour, single use, newest only | Same scheme as sessions, so a leaked table can't reset anyone. The token is claimed with one conditional update, so two requests with the same link can't both succeed |
