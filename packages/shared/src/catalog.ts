@@ -47,8 +47,21 @@ export type Category = z.infer<typeof categorySchema>;
 export const productImageSchema = z.object({
   url: z.string().meta({ description: "Path on the API; prefix with the API base URL", example: "/api/images/products/2/main.webp" }),
   alt: z.string().meta({ example: "Reference 02" }),
+  variantId: z
+    .number()
+    .int()
+    .nullable()
+    .meta({ description: "Variant this image shows (e.g. a colour or flavour); null = shared by all variants", example: null }),
 });
 export type ProductImage = z.infer<typeof productImageSchema>;
+
+// The gallery for the selected variant: its own images first, then the shared ones.
+// Falls back to every image when that leaves nothing (e.g. all images belong to other variants).
+export function imagesForVariant<T extends ProductImage>(images: T[], variantId: number | undefined): T[] {
+  const own = variantId === undefined ? [] : images.filter((i) => i.variantId === variantId);
+  const shown = [...own, ...images.filter((i) => i.variantId === null)];
+  return shown.length ? shown : images;
+}
 
 // One card on a listing page.
 export const productSummarySchema = z.object({

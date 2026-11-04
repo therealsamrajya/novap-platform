@@ -1,4 +1,4 @@
-import type { ProductDetail, ProductVariant } from "@novap/shared";
+import { imagesForVariant, type ProductDetail, type ProductImage, type ProductVariant } from "@novap/shared";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
@@ -62,7 +62,8 @@ function ProductView({ product }: { product: ProductDetail }) {
       </nav>
 
       <div className="grid items-start gap-10 pb-24 lg:grid-cols-[1.08fr_0.92fr] lg:gap-[7%]">
-        <Gallery product={product} />
+        {/* Keyed by variant so picking another one starts its gallery at the first image. */}
+        <Gallery key={variant?.id} images={imagesForVariant(product.images, variant?.id)} name={product.name} />
 
         <div className="lg:sticky lg:top-28">
           {product.category && <p className="micro text-muted">{product.category.name}</p>}
@@ -153,22 +154,22 @@ function SpecLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-function Gallery({ product }: { product: ProductDetail }) {
+function Gallery({ images, name }: { images: ProductImage[]; name: string }) {
   const [index, setIndex] = useState(0);
-  const main = product.images[index];
+  const main = images[index];
 
   return (
     <div>
       <div className="aspect-square overflow-hidden bg-stone">
         {main ? (
-          <img src={assetUrl(main.url)} alt={main.alt || product.name} className="size-full object-cover" />
+          <img src={assetUrl(main.url)} alt={main.alt || name} className="size-full object-cover" />
         ) : (
           <div className="grid size-full place-items-center text-[12rem] font-medium text-black/5">Ō</div>
         )}
       </div>
-      {product.images.length > 1 && (
+      {images.length > 1 && (
         <div className="mt-3 grid grid-cols-4 gap-3 sm:grid-cols-5">
-          {product.images.map((img, i) => (
+          {images.map((img, i) => (
             <button
               key={img.url}
               onClick={() => setIndex(i)}

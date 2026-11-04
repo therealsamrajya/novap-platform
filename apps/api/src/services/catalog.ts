@@ -137,13 +137,20 @@ export async function firstImageByProduct(db: Db, productIds: number[]): Promise
   if (productIds.length === 0) return result;
 
   const rows = await db
-    .select({ productId: productImages.productId, r2Key: productImages.r2Key, alt: productImages.alt })
+    .select({
+      productId: productImages.productId,
+      variantId: productImages.variantId,
+      r2Key: productImages.r2Key,
+      alt: productImages.alt,
+    })
     .from(productImages)
     .where(inArray(productImages.productId, productIds))
     .orderBy(asc(productImages.productId), asc(productImages.sortOrder), asc(productImages.id));
 
   for (const row of rows) {
-    if (!result.has(row.productId)) result.set(row.productId, { url: imageUrl(row.r2Key), alt: row.alt });
+    if (!result.has(row.productId)) {
+      result.set(row.productId, { url: imageUrl(row.r2Key), alt: row.alt, variantId: row.variantId });
+    }
   }
   return result;
 }
@@ -161,6 +168,10 @@ export async function getProductBySlug(db: Db, slug: string): Promise<ProductDet
     },
   });
   if (!product || product.variants.length === 0) return undefined;
+
+  // Images of inactive variants are hidden along with the variant.
+  const activeVariantIds = new Set(product.variants.map((v) => v.id));
+  const images = product.images.filter((i) => i.variantId === null || activeVariantIds.has(i.variantId));
 
   return {
     id: product.id,
@@ -181,6 +192,6 @@ export async function getProductBySlug(db: Db, slug: string): Promise<ProductDet
       inStock: v.stock > 0,
       attributes: v.attributes ?? null,
     })),
-    images: product.images.map((i) => ({ url: imageUrl(i.r2Key), alt: i.alt })),
+    images: images.map((i) => ({ url: imageUrl(i.r2Key), alt: i.alt, variantId: i.variantId })),
   };
 }

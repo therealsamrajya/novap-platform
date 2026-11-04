@@ -245,7 +245,13 @@ export async function getAdminProduct(db: Db, id: number): Promise<AdminProductD
     featured: product.featured,
     visible: product.active && product.variants.some((v) => v.active),
     variants: product.variants.map(toAdminVariant),
-    images: product.images.map((i) => ({ id: i.id, url: imageUrl(i.r2Key), alt: i.alt, sortOrder: i.sortOrder })),
+    images: product.images.map((i) => ({
+      id: i.id,
+      url: imageUrl(i.r2Key),
+      alt: i.alt,
+      variantId: i.variantId,
+      sortOrder: i.sortOrder,
+    })),
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
   };

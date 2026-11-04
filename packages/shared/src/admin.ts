@@ -216,6 +216,9 @@ export const IMAGES_PER_PRODUCT_MAX = 20;
 
 const imageAlt = z.string().trim().max(200).meta({ description: "Text for screen readers", example: "Reference 02, front" });
 
+// Must be a variant of the same product (checked by the API).
+const imageVariantId = z.number().int().positive().meta({ example: 3 });
+
 // multipart/form-data. The file's type is checked again on the server from its
 // bytes; `type` here is only what the browser claims.
 export const imageUploadSchema = z.strictObject({
@@ -227,11 +230,18 @@ export const imageUploadSchema = z.strictObject({
     // The OpenAPI generator doesn't know z.file(); this is how OpenAPI describes an upload.
     .meta({ type: "string", format: "binary", description: "JPEG, PNG, WebP or AVIF, max 5 MB" }),
   alt: imageAlt.default(""),
+  // Form fields are strings, hence coerce.
+  variantId: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .meta({ type: "integer", minimum: 1, description: "Leave out for an image shared by all variants", example: 3 }),
 });
 export type ImageUploadInput = z.output<typeof imageUploadSchema>;
 
 export const imageUpdateSchema = z
-  .strictObject({ alt: imageAlt, sortOrder })
+  .strictObject({ alt: imageAlt, sortOrder, variantId: imageVariantId.nullable().meta({ description: "null = shared by all variants" }) })
   .partial()
   .refine(notEmpty, notEmptyMessage);
 export type ImageUpdateInput = z.output<typeof imageUpdateSchema>;

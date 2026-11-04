@@ -1,4 +1,4 @@
-import { checkoutSchema, formatAud, type CheckoutCreated, type CheckoutInput, type ProductDetail } from "@novap/shared";
+import { checkoutSchema, formatAud, imagesForVariant, type CheckoutCreated, type CheckoutInput, type ProductDetail } from "@novap/shared";
 import { useMutation, useQueries } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
@@ -83,7 +83,8 @@ function CartRow({
   variant?: ProductDetail["variants"][number];
   loading: boolean;
 }) {
-  const image = product?.images[0];
+  // The variant's own picture when it has one (a colour, a flavour), else the product's.
+  const image = product && imagesForVariant(product.images, variant?.id)[0];
   return (
     <li className="flex gap-5 border-b border-line py-6">
       <Link to={`/products/${line.slug}`} className="size-24 shrink-0 overflow-hidden bg-stone md:size-28">

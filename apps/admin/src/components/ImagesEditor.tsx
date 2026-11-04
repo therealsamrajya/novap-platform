@@ -106,6 +106,24 @@ export function ImagesEditor({ product }: { product: AdminProductDetail }) {
                   if (alt !== img.alt) update.mutate({ id: img.id, alt });
                 }}
               />
+              {/* Shared images show for every variant; a variant's own images show first when it's picked in the shop. */}
+              {product.variants.length > 1 && (
+                <select
+                  className="input text-xs"
+                  aria-label="Shown for"
+                  value={img.variantId ?? ""}
+                  disabled={update.isPending}
+                  onChange={(e) => update.mutate({ id: img.id, variantId: e.target.value ? Number(e.target.value) : null })}
+                >
+                  <option value="">All variants</option>
+                  {product.variants.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.label}
+                      {v.active ? "" : " (inactive)"}
+                    </option>
+                  ))}
+                </select>
+              )}
               <div className="flex gap-1">
                 <button
                   className="btn px-2"

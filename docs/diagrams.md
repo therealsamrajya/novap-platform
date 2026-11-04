@@ -24,6 +24,7 @@ erDiagram
     categories |o--o{ products : "groups"
     products ||--|{ variants : "sold as"
     products ||--o{ product_images : "shown with"
+    variants |o--o{ product_images : "own pictures"
     orders ||--|{ order_items : "contains"
     variants |o--o{ order_items : "snapshot of"
 
@@ -106,6 +107,7 @@ erDiagram
     product_images {
         integer id PK
         integer product_id FK "cascade"
+        integer variant_id FK "set null; null = all variants"
         text r2_key "file lives in R2"
         text alt
         integer sort_order
@@ -166,7 +168,7 @@ erDiagram
 | category | products kept with `category_id = null` |
 | product | variants, product_images deleted |
 | order | order_items deleted |
-| variant | order_items kept with `variant_id = null` (snapshot columns keep history correct) |
+| variant | order_items kept with `variant_id = null` (snapshot columns keep history correct); product_images kept with `variant_id = null` (shared by all variants) |
 
 ## 2. Domain model (class diagram)
 
@@ -241,6 +243,7 @@ classDiagram
     class ProductImage {
         +number id
         +number productId
+        +number? variantId
         +string r2Key
         +string alt
         +number sortOrder
@@ -316,6 +319,7 @@ classDiagram
     Category "0..1" --> "*" Product : products
     Product "1" *-- "*" Variant : variants
     Product "1" *-- "*" ProductImage : images
+    Variant "0..1" o-- "*" ProductImage : images
     Order "1" *-- "1..*" OrderItem : items
     Order *-- ShippingAddress
     Order ..> OrderStatus

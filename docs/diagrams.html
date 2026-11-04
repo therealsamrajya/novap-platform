@@ -93,6 +93,7 @@ erDiagram
     categories |o--o{ products : "groups"
     products ||--|{ variants : "sold as"
     products ||--o{ product_images : "shown with"
+    variants |o--o{ product_images : "own pictures"
     orders ||--|{ order_items : "contains"
     variants |o--o{ order_items : "snapshot of"
 
@@ -175,6 +176,7 @@ erDiagram
     product_images {
         integer id PK
         integer product_id FK "cascade"
+        integer variant_id FK "set null; null = all variants"
         text r2_key "file lives in R2"
         text alt
         integer sort_order
@@ -293,6 +295,7 @@ classDiagram
     class ProductImage {
         +number id
         +number productId
+        +number? variantId
         +string r2Key
         +string alt
         +number sortOrder
@@ -368,6 +371,7 @@ classDiagram
     Category "0..1" --&gt; "*" Product : products
     Product "1" *-- "*" Variant : variants
     Product "1" *-- "*" ProductImage : images
+    Variant "0..1" o-- "*" ProductImage : images
     Order "1" *-- "1..*" OrderItem : items
     Order *-- ShippingAddress
     Order ..&gt; OrderStatus

@@ -58,7 +58,7 @@ Services stay free of Hono, so other routes can reuse them (the Stripe webhook r
 ## Data model (summary)
 
 - **categories** 1─* **products** 1─* **variants** (what is bought: price, stock, SKU)
-- **products** 1─* **product_images** (R2 keys, ordered)
+- **products** 1─* **product_images** (R2 keys, ordered). Optional `variant_id`: the image belongs to that variant (colour, flavour); null = shared
 - **users** 1─* **sessions**, **password_reset_tokens**, **email_verification_tokens**, **addresses**, **orders**
 - **orders** 1─* **order_items**. Each item stores a snapshot of name, label, SKU and unit price at purchase time.
 - **stripe_events**: processed webhook ids, kept for idempotency

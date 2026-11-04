@@ -151,6 +151,8 @@ export const variants = sqliteTable(
 );
 
 // Image files live in R2; this table stores the R2 key and display order.
+// variantId null = shared by every variant of the product. Set = shown for that variant
+// (e.g. a colour or flavour); deleting the variant makes the image shared again.
 export const productImages = sqliteTable(
   "product_images",
   {
@@ -158,12 +160,16 @@ export const productImages = sqliteTable(
     productId: integer("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
+    variantId: integer("variant_id").references(() => variants.id, { onDelete: "set null" }),
     r2Key: text("r2_key").notNull(),
     alt: text("alt").notNull().default(""),
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: createdAt(),
   },
-  (t) => [index("product_images_product_idx").on(t.productId)],
+  (t) => [
+    index("product_images_product_idx").on(t.productId),
+    index("product_images_variant_idx").on(t.variantId),
+  ],
 );
 
 // ---------------------------------------------------------------- orders
@@ -294,12 +300,14 @@ export const productsRelations = relations(products, ({ one, many }) => ({
   images: many(productImages),
 }));
 
-export const variantsRelations = relations(variants, ({ one }) => ({
+export const variantsRelations = relations(variants, ({ one, many }) => ({
   product: one(products, { fields: [variants.productId], references: [products.id] }),
+  images: many(productImages),
 }));
 
 export const productImagesRelations = relations(productImages, ({ one }) => ({
   product: one(products, { fields: [productImages.productId], references: [products.id] }),
+  variant: one(variants, { fields: [productImages.variantId], references: [variants.id] }),
 }));
 
 export const ordersRelations = relations(orders, ({ one, many }) => ({
