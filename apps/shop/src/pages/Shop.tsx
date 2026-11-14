@@ -255,7 +255,9 @@ export function ShopPage() {
                 </button>
               </div>
             )}
-            {pages > 1 && <Pager page={page} pages={pages} onPage={goToPage} />}
+            {/* Shown even for a single page (arrows disabled), so the place to turn pages is
+                always where shoppers expect it. */}
+            {pages >= 1 && <Pager page={page} pages={pages} onPage={goToPage} />}
           </div>
         </div>
       </div>
