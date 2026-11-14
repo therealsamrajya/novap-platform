@@ -8,8 +8,24 @@ const nav = [
   { to: "/contact", label: "Contact" },
 ];
 
-export function Brand({ className = "" }: { className?: string }) {
-  return <span className={`font-semibold tracking-[-0.09em] ${className}`}>NŌVAP</span>;
+// The wordmark, in the editorial serif. With `sun`, the Ō sits on a small red disc: the same
+// sun the landing page hero is built around.
+export function Brand({ className = "", sun = false }: { className?: string; sun?: boolean }) {
+  return (
+    <span className={`isolate font-editorial font-semibold tracking-[-0.04em] ${className}`}>
+      N
+      <span className="relative">
+        {sun && (
+          <span
+            aria-hidden
+            className="absolute top-[56%] left-1/2 -z-10 size-[0.92em] -translate-1/2 rounded-full bg-crimson transition-transform duration-700 ease-editorial group-hover:scale-125"
+          />
+        )}
+        Ō
+      </span>
+      VAP
+    </span>
+  );
 }
 
 export function Layout() {
@@ -24,37 +40,35 @@ export function Layout() {
     window.scrollTo(0, 0);
   }, [location.pathname]);
 
+  // Links get a hairline that draws in from the left; it stays drawn on the current page.
   const navLink = ({ isActive }: { isActive: boolean }) =>
-    `micro py-3 border-b ${isActive ? "border-ink" : "border-transparent hover:border-ink"}`;
+    `micro relative py-3 after:absolute after:inset-x-0 after:bottom-1.5 after:h-px after:origin-left after:bg-ink after:transition-transform after:duration-500 after:ease-editorial hover:after:scale-x-100 ${
+      isActive ? "after:scale-x-100" : "after:scale-x-0"
+    }`;
+
+  // The masthead is printed on the same sand paper as the hero band under it, so it reads as
+  // the top of the sheet, not a bar laid over it. The landing page hero is grained, so there
+  // the masthead gets the same grain.
+  const home = location.pathname === "/";
 
   return (
     <div className="flex min-h-screen flex-col">
-      <div className="micro flex h-8 items-center justify-center bg-ink px-4 text-center text-[9px] text-neutral-300">
-        Prices in AUD, GST included · <span className="ml-1 text-champagne">Australia-wide shipping</span>
-      </div>
-
-      <header className="sticky top-0 z-40 border-b border-neutral-200 bg-paper/95 backdrop-blur">
-        <div className="shell grid h-18 grid-cols-[1fr_auto] items-center gap-6 md:h-20 md:grid-cols-[1fr_auto_1fr]">
-          <Link to="/" aria-label="NŌVAP home">
-            <Brand className="text-3xl md:text-4xl" />
-          </Link>
-          <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
-            {nav.map((item) => (
-              <NavLink key={item.to} to={item.to} className={navLink}>
-                {item.label}
-              </NavLink>
-            ))}
-          </nav>
-          <div className="flex items-center justify-end gap-5">
-            <NavLink to={me.data ? "/account" : "/login"} className={(state) => `${navLink(state)} hidden sm:block`}>
-              {me.data ? "Account" : "Log in"}
-            </NavLink>
-            <NavLink to="/cart" className={navLink} aria-label={`Cart, ${count} items`}>
-              Cart
-              <span className="ml-2 inline-grid size-5 place-items-center rounded-full bg-ink text-[9px] text-white">{count}</span>
-            </NavLink>
+      <header className={`sticky top-0 z-40 bg-sand/90 backdrop-blur-md ${home ? "grain" : ""}`}>
+        {/* Magazine masthead: contents on the left, wordmark in the middle, account on the right. */}
+        <div className="shell grid h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 md:h-24">
+          <div className="flex items-center">
+            <nav className="hidden items-center gap-9 md:flex" aria-label="Main">
+              {nav.map((item, i) => (
+                <NavLink key={item.to} to={item.to} className={navLink}>
+                  <span aria-hidden className="mr-2 text-crimson tabular-nums">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  {item.label}
+                </NavLink>
+              ))}
+            </nav>
             <button
-              className="micro md:hidden"
+              className="micro py-3 md:hidden"
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               onClick={() => setMenuOpen((o) => !o)}
@@ -62,16 +76,30 @@ export function Layout() {
               {menuOpen ? "Close" : "Menu"}
             </button>
           </div>
+          <Link to="/" aria-label="NŌVAP home" className="group animate-slide-in px-2">
+            <Brand sun className="text-4xl md:text-5xl" />
+          </Link>
+          <div className="flex items-center justify-end gap-7">
+            <NavLink to={me.data ? "/account" : "/login"} className={(state) => `${navLink(state)} hidden sm:block`}>
+              {me.data ? "Account" : "Log in"}
+            </NavLink>
+            <NavLink to="/cart" className={navLink} aria-label={`Cart, ${count} items`}>
+              Cart
+              <span className="ml-2 inline-grid size-5 place-items-center rounded-full bg-ink text-[9px] text-paper">{count}</span>
+            </NavLink>
+          </div>
         </div>
         {menuOpen && (
           <nav id="mobile-menu" className="shell flex flex-col pb-6 md:hidden" aria-label="Mobile">
             {[...nav, { to: me.data ? "/account" : "/login", label: me.data ? "Account" : "Log in" }].map((item) => (
-              <NavLink key={item.to} to={item.to} className="border-b border-line py-4 text-lg">
+              <NavLink key={item.to} to={item.to} className="border-b border-ink/20 py-4 font-editorial text-2xl">
                 {item.label}
               </NavLink>
             ))}
           </nav>
         )}
+        {/* Same faint hairline as the hero's layout grid, so the masthead is one more cell of it. */}
+        <div aria-hidden className="h-px bg-ink/15" />
       </header>
 
       <main className="flex-1">

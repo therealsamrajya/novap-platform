@@ -1,4 +1,6 @@
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/playfair-display";
+@import "@fontsource-variable/playfair-display/wght-italic.css";
 @import "tailwindcss";
 
 /* Palette and type follow the old static site's look (UI reference only):
@@ -13,6 +15,33 @@
   --color-ink: #0b0b0b;
   --color-muted: #73716e;
   --color-champagne: #c9c3b8;
+
+  /* Editorial landing page: high-contrast serif headlines and one loud accent. */
+  --font-editorial: "Playfair Display Variable", Georgia, "Times New Roman", serif;
+  --color-crimson: #b4231c;
+  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --animate-slide-in: slide-in 0.9s var(--ease-editorial) both;
+  --animate-drift: drift 9s ease-in-out infinite;
+  --animate-progress: progress 6s linear both;
+
+  @keyframes progress {
+    from {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(1.25rem);
+    }
+  }
+  @keyframes drift {
+    50% {
+      transform: translateY(-0.6rem);
+    }
+  }
 }
 
 @layer base {
@@ -60,5 +89,106 @@
   }
   .link {
     @apply underline decoration-neutral-400 underline-offset-4 hover:decoration-ink;
+  }
+
+  /* --- Editorial landing page ------------------------------------------------ */
+
+  .headline {
+    @apply font-editorial font-medium tracking-[-0.045em] leading-[0.9];
+  }
+
+  /* Scroll reveals. `useReveal` (pages/Home.tsx) adds .is-in once the element is on screen.
+     They use the `translate` / `scale` properties, not `transform`, so they never fight
+     Tailwind's own translate/scale utilities on the same element. --d staggers siblings. */
+  .reveal {
+    opacity: 0;
+    translate: 0 1.75rem;
+    transition:
+      opacity 1s var(--ease-editorial) var(--d, 0ms),
+      translate 1s var(--ease-editorial) var(--d, 0ms);
+  }
+  .reveal.is-in {
+    opacity: 1;
+    translate: 0 0;
+  }
+
+  /* A headline line that slides up from behind its own baseline. The padding keeps
+     descenders and the italic overhang from being clipped by overflow: hidden. */
+  .mask {
+    display: block;
+    overflow: hidden;
+    padding: 0.06em 0.08em 0.16em 0;
+    margin-bottom: -0.16em;
+  }
+  .mask > span {
+    display: block;
+    translate: 0 115%;
+    transition: translate 1.2s var(--ease-editorial) var(--d, 0ms);
+  }
+  .mask.is-in > span {
+    translate: 0 0;
+  }
+
+  /* Hairlines that draw themselves in. */
+  .rule-x,
+  .rule-y {
+    transition: scale 1.4s var(--ease-editorial) var(--d, 0ms);
+  }
+  .rule-x {
+    scale: 0 1;
+    transform-origin: left;
+  }
+  .rule-y {
+    scale: 1 0;
+    transform-origin: top;
+  }
+  .rule-x.is-in,
+  .rule-y.is-in {
+    scale: 1 1;
+  }
+
+  .sun {
+    opacity: 0;
+    scale: 0.55;
+    transition:
+      opacity 1.2s var(--ease-editorial) var(--d, 0ms),
+      scale 1.6s var(--ease-editorial) var(--d, 0ms);
+  }
+  .sun.is-in {
+    opacity: 1;
+    scale: 1;
+  }
+
+  /* Print textures: paper grain over a whole section, halftone dots over an image. */
+  .grain::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.22;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .halftone {
+    background-image: radial-gradient(circle, rgb(11 11 11 / 0.5) 0.9px, transparent 1.2px);
+    background-size: 5px 5px;
+  }
+}
+
+/* No motion wanted: show everything in its final state and stop the loops. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .mask > span,
+  .rule-x,
+  .rule-y,
+  .sun {
+    opacity: 1;
+    translate: none;
+    scale: none;
+    transition: none;
+  }
+  .animate-slide-in,
+  .animate-drift,
+  .animate-progress {
+    animation: none;
   }
 }

@@ -97,6 +97,9 @@ importers:
       '@fontsource-variable/inter':
         specifier: ~5.3.0
         version: 5.3.0
+      '@fontsource-variable/playfair-display':
+        specifier: ~5.3.0
+        version: 5.3.0
       '@novap/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -661,6 +664,9 @@ packages:
 
   '@fontsource-variable/inter@5.3.0':
     resolution: {integrity: sha512-OupL48va4JNofb97w6NYeF9S7W/kHNKM0Er8Dem5nqi4jeOLrVJDoE8tZEpnMJmtkvNbB1EIPPwHcdkF6b1oUA==}
+
+  '@fontsource-variable/playfair-display@5.3.0':
+    resolution: {integrity: sha512-IHdzTvE8eGIXHteZql7KXoqdc3Gfm+Zs1u4XlSC3MeplkwviT3sx/P6gI0tLwg/xIYLF4ZJYveZ5V+bl9cnDwA==}
 
   '@hono/swagger-ui@0.6.2':
     resolution: {integrity: sha512-EDLlBS+LwpAhhh5K45YH85Yyk9GJuD2E7rKdjTZsBObksXaBz+8jPsen5XZqOS9unw6H1CDq0LKzp0c51K6lsA==}
@@ -1928,6 +1934,8 @@ snapshots:
     optional: true
 
   '@fontsource-variable/inter@5.3.0': {}
+
+  '@fontsource-variable/playfair-display@5.3.0': {}
 
   '@hono/swagger-ui@0.6.2(hono@4.13.14)':
     dependencies:
