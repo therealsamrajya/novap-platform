@@ -95,7 +95,8 @@ apps/shop/src/
                       (Stripe redirects, emails): don't rename them without changing apps/api
   lib/cart.ts         cart in localStorage (variantId, quantity, slug), useCart / useCartCount, synced across tabs
   lib/auth.tsx        useMe, useLogin, useRegister, useLogout, RequireAuth (account pages), useReturnTo
-  components/         Layout (header, footer), ProductCard / ProductGrid, ui.tsx (Field, Price, PageHero, ...)
+  components/         Layout (header, footer), ProductCard / ProductGrid, ui.tsx (Field, Price, PageHero, ...),
+                      editorial.tsx (useReveal, Star: shared by the landing page and the catalogue)
   pages/              Home, Shop, Product, Cart (+ checkout), CheckoutSuccess, Contact, Auth (login, register,
                       forgot/reset password, verify email), Account (+ order detail), NotFound
 ```

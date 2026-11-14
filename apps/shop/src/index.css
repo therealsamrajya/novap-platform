@@ -97,7 +97,7 @@
     @apply font-editorial font-medium tracking-[-0.045em] leading-[0.9];
   }
 
-  /* Scroll reveals. `useReveal` (pages/Home.tsx) adds .is-in once the element is on screen.
+  /* Scroll reveals. `useReveal` (components/editorial.tsx) adds .is-in once the element is on screen.
      They use the `translate` / `scale` properties, not `transform`, so they never fight
      Tailwind's own translate/scale utilities on the same element. --d staggers siblings. */
   .reveal {

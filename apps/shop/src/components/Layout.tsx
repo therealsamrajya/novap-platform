@@ -47,9 +47,9 @@ export function Layout() {
     }`;
 
   // The masthead is printed on the same sand paper as the hero band under it, so it reads as
-  // the top of the sheet, not a bar laid over it. The landing page hero is grained, so there
-  // the masthead gets the same grain.
-  const home = location.pathname === "/";
+  // the top of the sheet, not a bar laid over it. The landing page and catalogue heroes are
+  // grained, so there the masthead gets the same grain.
+  const home = location.pathname === "/" || location.pathname === "/shop";
 
   return (
     <div className="flex min-h-screen flex-col">

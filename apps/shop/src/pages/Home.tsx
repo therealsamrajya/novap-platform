@@ -1,7 +1,8 @@
 import type { Category, Paginated, ProductSummary } from "@novap/shared";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useState } from "react";
 import { Link } from "react-router";
+import { delay, pad, Star, useReveal } from "../components/editorial";
 import { Price, useTitle } from "../components/ui";
 import { api, assetUrl } from "../lib/api";
 import { useMe } from "../lib/auth";
@@ -13,45 +14,6 @@ import lion from "../assets/home/lion.webp";
 import pagoda from "../assets/home/pagoda.webp";
 import street from "../assets/home/street.webp";
 import torii from "../assets/home/torii.webp";
-
-// Stagger for the reveal classes in index.css: they read --d as their transition delay.
-const delay = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-// Adds .is-in to every [data-reveal] element under the returned ref once it scrolls into view.
-// Done with classList (not React state) so a section of 30 animated nodes costs no re-renders.
-// Only put data-reveal on elements with a static className: React rewrites the whole class
-// attribute when className changes, which would drop .is-in.
-function useReveal(rerunKey: string) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const root = ref.current;
-    if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!entry.isIntersecting) continue;
-          entry.target.classList.add("is-in");
-          observer.unobserve(entry.target);
-        }
-      },
-      { threshold: 0.15 },
-    );
-    root.querySelectorAll("[data-reveal]:not(.is-in)").forEach((el) => observer.observe(el));
-    return () => observer.disconnect();
-    // rerunKey changes when API data arrives, so the new cards get observed too.
-  }, [rerunKey]);
-  return ref;
-}
-
-function Star({ className = "" }: { className?: string }) {
-  return (
-    <svg aria-hidden viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 0l1.8 10.2L24 12l-10.2 1.8L12 24l-1.8-10.2L0 12l10.2-1.8z" />
-    </svg>
-  );
-}
 
 function productTag(p: ProductSummary) {
   return !p.inStock ? "Sold out" : p.onSale ? "Sale" : "Featured";
