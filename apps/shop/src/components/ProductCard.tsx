@@ -16,7 +16,7 @@ const plates = [
 ];
 
 // Picked from the slug, so a piece keeps its plate whatever the page, sort or filter.
-function plateFor(slug: string) {
+export function plateFor(slug: string) {
   let sum = 0;
   for (const ch of slug) sum += ch.charCodeAt(0);
   return plates[sum % plates.length]!;
