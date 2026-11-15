@@ -155,11 +155,12 @@ function ProductView({ product }: { product: ProductDetail }) {
       {/* Two cells of the layout grid: the hairline between them runs from the breadcrumb rule
           down to the foot of the section. */}
       <div className="grid lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-        {/* The photo stays in view while a long description scrolls past, on screens tall
-            enough to hold it. z-10 lifts it above the section's grain. */}
+        {/* The photo stays in view while a long description scrolls past. The gallery caps its
+            own width by the viewport height, so the photo fits under the header on short
+            screens too. z-10 lifts it above the section's grain. */}
         <div
           data-reveal
-          className="reveal relative z-10 min-w-0 pt-8 lg:top-24 lg:self-start lg:pt-12 lg:pr-12 lg:pb-24 xl:pr-16 lg:[@media(min-height:860px)]:sticky"
+          className="reveal relative z-10 min-w-0 pt-8 lg:sticky lg:top-24 lg:self-start lg:pt-12 lg:pr-12 lg:pb-24 xl:pr-16"
         >
           {/* Keyed by variant so picking another one starts its gallery at the first image. */}
           <Gallery
@@ -176,7 +177,7 @@ function ProductView({ product }: { product: ProductDetail }) {
             <Star className="size-3" />
             {product.category?.name ?? "NŌVAP"}
           </p>
-          <h1 className="headline mt-5 text-[clamp(2.75rem,5vw,5rem)] text-balance">
+          <h1 className="headline mt-5 text-[clamp(2.5rem,4vw,4rem)] text-balance">
             <span data-reveal className="mask" style={delay(100)}>
               <span>{product.name}</span>
             </span>
@@ -310,8 +311,7 @@ function ProductView({ product }: { product: ProductDetail }) {
                 <SpecLine
                   label="Availability"
                   value={
-                    <span className="inline-flex items-center gap-2.5">
-                      <span aria-hidden className={`size-1.5 rounded-full ${variant?.inStock ? "bg-ink" : "bg-crimson"}`} />
+                    <span className={variant?.inStock ? "text-emerald-800" : "text-crimson"}>
                       {variant?.inStock ? "In stock" : "Sold out"}
                     </span>
                   }
@@ -354,7 +354,13 @@ function Gallery({
   const arrow = "grid size-11 place-items-center bg-ink text-lg leading-none text-paper transition-colors hover:bg-crimson";
 
   return (
-    <div className={`grid gap-3 lg:gap-4 ${count > 1 ? "lg:grid-cols-[4.5rem_minmax(0,1fr)]" : ""}`}>
+    // Desktop width is capped so the square photo (gallery width less the 5.5rem rail and gap)
+    // never stands taller than the viewport less the 10.5rem above it: header, padding, margin.
+    <div
+      className={`grid gap-3 lg:gap-4 ${
+        count > 1 ? "lg:max-w-[calc(100svh-5rem)] lg:grid-cols-[4.5rem_minmax(0,1fr)]" : "lg:max-w-[calc(100svh-10.5rem)]"
+      }`}
+    >
       {count > 1 && (
         // A row under the photo on small screens; on desktop a rail beside it, exactly as tall
         // as the photo (the list is absolute, so it scrolls instead of stretching the row).
