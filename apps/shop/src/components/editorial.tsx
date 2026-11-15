@@ -1,4 +1,6 @@
 import { useEffect, useRef, type CSSProperties } from "react";
+import { Link } from "react-router";
+import angel from "../assets/home/angel.webp";
 
 // Shared pieces of the editorial look (landing page and catalogue). The classes they drive
 // (.reveal, .mask, .rule-x, .sun ...) live in index.css.
@@ -39,5 +41,33 @@ export function Star({ className = "" }: { className?: string }) {
     <svg aria-hidden viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M12 0l1.8 10.2L24 12l-10.2 1.8L12 24l-1.8-10.2L0 12l10.2-1.8z" />
     </svg>
+  );
+}
+
+// Closing red band of the catalogue and product pages. Multiply turns the grey stone of the
+// statue into a darker shade of the panel's own red.
+export function AskBand() {
+  return (
+    <section className="relative overflow-hidden bg-crimson text-paper">
+      <img
+        src={angel}
+        alt=""
+        className="pointer-events-none absolute right-[-20%] bottom-0 h-[110%] w-auto max-w-none mix-blend-multiply grayscale md:right-[6%]"
+      />
+      <div className="shell relative flex flex-wrap items-end justify-between gap-8 py-14 md:py-16">
+        <div>
+          <p className="micro opacity-80">Need a hand choosing?</p>
+          <p className="headline mt-4 text-5xl md:text-6xl">
+            Ask <span className="italic">us.</span>
+          </p>
+        </div>
+        <Link to="/contact" className="btn btn-light group">
+          Contact us
+          <span aria-hidden className="transition-transform group-hover:translate-x-1">
+            →
+          </span>
+        </Link>
+      </div>
+    </section>
   );
 }

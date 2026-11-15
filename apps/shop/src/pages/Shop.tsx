@@ -1,20 +1,17 @@
 import { productSortValues, type Category, type Paginated, type ProductSort, type ProductSummary } from "@novap/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router";
-import { delay, Star, useReveal } from "../components/editorial";
+import { AskBand, delay, Star, useReveal } from "../components/editorial";
 import { ProductGrid, ProductGridSkeleton } from "../components/ProductCard";
 import { useTitle } from "../components/ui";
 import { api } from "../lib/api";
 import { useListParams } from "../lib/list-params";
 // Same decorative cut-outs as the landing page, so every use has alt="".
-import angel from "../assets/home/angel.webp";
 import blossom from "../assets/home/blossom.webp";
 import bust from "../assets/home/bust.webp";
 import pagoda from "../assets/home/pagoda.webp";
 import street from "../assets/home/street.webp";
 import torii from "../assets/home/torii.webp";
-import toriiMist from "../assets/home/torii-mist.webp";
 
 const LIMIT = 12;
 
@@ -117,13 +114,7 @@ export function ShopPage() {
       </section>
 
       <div className="bg-sand">
-        <div className="shell relative grid gap-10 pt-10 pb-24 md:pt-14 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14 lg:pb-56">
-          {/* A torii gate in the mist stands on the edge of the red band below, under the filter
-              rail's column. It lives in the bottom padding, which the sticky rail never reaches. */}
-          <div aria-hidden data-reveal className="reveal pointer-events-none absolute bottom-0 left-0 hidden w-60 lg:block">
-            <img src={toriiMist} alt="" className="w-full" />
-          </div>
-
+        <div className="shell grid gap-10 pt-10 pb-24 md:pt-14 lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-14">
           {/* Filter rail: beside the grid on desktop, above it on small screens. */}
           <aside className="lg:sticky lg:top-32 lg:max-h-[calc(100svh-9rem)] lg:self-start lg:overflow-y-auto">
             <form
@@ -263,27 +254,7 @@ export function ShopPage() {
       </div>
 
       {/* Closing band, the same on every page of results. */}
-      <section className="relative overflow-hidden bg-crimson text-paper">
-        <img
-          src={angel}
-          alt=""
-          className="pointer-events-none absolute right-[-20%] bottom-0 h-[110%] w-auto max-w-none mix-blend-multiply grayscale md:right-[6%]"
-        />
-        <div className="shell relative flex flex-wrap items-end justify-between gap-8 py-14 md:py-16">
-          <div>
-            <p className="micro opacity-80">Need a hand choosing?</p>
-            <p className="headline mt-4 text-5xl md:text-6xl">
-              Ask <span className="italic">us.</span>
-            </p>
-          </div>
-          <Link to="/contact" className="btn btn-light group">
-            Contact us
-            <span aria-hidden className="transition-transform group-hover:translate-x-1">
-              →
-            </span>
-          </Link>
-        </div>
-      </section>
+      <AskBand />
     </div>
   );
 }
