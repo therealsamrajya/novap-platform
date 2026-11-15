@@ -2,7 +2,7 @@ import { contactMessageSchema, type ContactMessageInput, type ContactReceived } 
 import { useMutation } from "@tanstack/react-query";
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { delay, pad, Star, useReveal } from "../components/editorial";
+import { delay, lineField as field, pad, Star, useReveal } from "../components/editorial";
 import { Field, FormError, useTitle } from "../components/ui";
 import { api } from "../lib/api";
 import { useMe } from "../lib/auth";
@@ -17,9 +17,6 @@ const steps = [
   { title: "We reply by email", body: "Usually within one business day, to the address you give here." },
 ];
 
-// Underlined, serif-set fields, like the catalogue's search box.
-const field =
-  "w-full rounded-none border-b border-ink/30 bg-transparent font-editorial text-xl outline-none transition-colors placeholder:text-ink/35 placeholder:italic focus:border-crimson aria-invalid:border-red-600";
 
 export function ContactPage() {
   useTitle("Contact");
