@@ -10,20 +10,79 @@ import {
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
+import { delay, lineField, Star, useReveal } from "../components/editorial";
 import { Field, FormError, Notice, useTitle } from "../components/ui";
+// Same decorative cut-outs as the landing page, so every use has alt="".
+import blossom from "../assets/home/blossom.webp";
+import toriiMist from "../assets/home/torii-mist.webp";
 import { api } from "../lib/api";
 import { useLogin, useMe, useRegister, useReturnTo } from "../lib/auth";
 import { errorMessage, errorsFrom, validate, type FieldErrors } from "../lib/forms";
 import { meKey } from "../lib/query";
 
-function AuthCard({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
+// Two halves of one spread: a sand panel with the headline and the landing page's collage,
+// and the form on paper. The inner widths keep both halves on the header's .shell margins.
+const half = "mx-auto w-[calc(100%-2.5rem)] md:w-[calc(100%-7rem)] lg:w-[min(calc(100%-3.5rem),700px)]";
+const input = `${lineField} h-12`;
+
+function Accent({ children }: { children: ReactNode }) {
+  return <span className="text-crimson italic">{children}</span>;
+}
+
+function Arrow() {
   return (
-    <div className="shell py-16 md:py-24">
-      <div className="mx-auto max-w-xl bg-sand p-8 md:p-12">
-        <p className="micro text-muted">{eyebrow}</p>
-        <h1 className="display mt-4 mb-8 text-4xl md:text-5xl">{title}</h1>
-        {children}
-      </div>
+    <span aria-hidden className="transition-transform group-hover:translate-x-1">
+      →
+    </span>
+  );
+}
+
+function AuthCard({ eyebrow, title, intro, children }: { eyebrow: string; title: ReactNode; intro?: string; children: ReactNode }) {
+  const ref = useReveal("auth");
+  return (
+    <div ref={ref} className="grid border-b border-ink lg:min-h-[calc(100svh-6rem)] lg:grid-cols-2">
+      <section className="grain relative overflow-hidden border-b border-ink bg-sand lg:border-r lg:border-b-0">
+        {/* Small screens get the sun alone, cut off by the corner. */}
+        <span aria-hidden data-reveal className="sun absolute -top-24 -right-24 size-56 rounded-full bg-crimson lg:hidden" />
+
+        <div className={`${half} relative z-10 py-12 md:py-16 lg:mr-0 lg:py-20 lg:pr-14`}>
+          <p data-reveal className="reveal micro flex items-center gap-3 text-ink/70">
+            <Star className="size-3 text-crimson" />
+            {eyebrow}
+          </p>
+          <h1 className="headline mt-6 text-[clamp(3rem,5.6vw,5.5rem)]">
+            <span data-reveal className="mask" style={delay(100)}>
+              <span>{title}</span>
+            </span>
+          </h1>
+          {intro && (
+            <p data-reveal className="reveal mt-6 max-w-sm font-editorial text-lg leading-snug md:text-xl" style={delay(300)}>
+              {intro}
+            </p>
+          )}
+        </div>
+
+        {/* Same collage as the contact page: sun, gate in the mist, blossom branch. */}
+        <div aria-hidden className="absolute right-[8%] bottom-0 hidden aspect-5/6 w-[min(48%,21rem)] lg:block">
+          <div data-reveal className="sun absolute top-[3%] left-[4%] aspect-square w-[82%] rounded-full bg-crimson" style={delay(250)} />
+          <div className="halftone absolute right-0 bottom-[6%] h-[38%] w-[58%] mask-[linear-gradient(to_top_left,black,transparent_75%)]" />
+          <div data-reveal className="reveal absolute bottom-[4%] left-[-18%] w-[136%]" style={delay(450)}>
+            <img src={toriiMist} alt="" className="w-full max-w-none" />
+          </div>
+          <div data-reveal className="reveal absolute top-[-3%] right-[-5%] w-[44%]" style={delay(800)}>
+            <img src={blossom} alt="" className="w-full animate-drift" />
+          </div>
+          <Star className="absolute top-[30%] left-[-4%] size-5 animate-drift text-ink" />
+        </div>
+      </section>
+
+      <section className="flex items-center bg-paper">
+        <div className={`${half} py-12 md:py-16 lg:ml-0 lg:py-20 lg:pl-14`}>
+          <div data-reveal className="reveal max-w-md border-t border-ink pt-10 lg:mx-auto" style={delay(200)}>
+            {children}
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -48,20 +107,29 @@ export function LoginPage() {
   }
 
   return (
-    <AuthCard eyebrow="Account" title="Log in">
-      <form onSubmit={onSubmit} noValidate className="space-y-5">
+    <AuthCard
+      eyebrow="Account"
+      title={
+        <>
+          Log <Accent>in.</Accent>
+        </>
+      }
+      intro="Welcome back. Your orders and details are where you left them."
+    >
+      <form onSubmit={onSubmit} noValidate className="space-y-8">
         <FormError message={errors.form} />
         <Field label="Email" error={errors.email}>
-          <input className="input bg-paper" name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
+          <input className={input} name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
         </Field>
         <Field label="Password" error={errors.password}>
-          <input className="input bg-paper" name="password" type="password" autoComplete="current-password" aria-invalid={!!errors.password} />
+          <input className={input} name="password" type="password" autoComplete="current-password" aria-invalid={!!errors.password} />
         </Field>
-        <button className="btn btn-dark w-full" disabled={login.isPending}>
+        <button className="btn btn-dark group w-full" disabled={login.isPending}>
           {login.isPending ? "Logging in…" : "Log in"}
+          <Arrow />
         </button>
       </form>
-      <div className="mt-8 flex flex-wrap justify-between gap-4 text-sm">
+      <div className="mt-10 flex flex-wrap justify-between gap-4 text-sm">
         <Link to="/register" state={{ from: returnTo }} className="link">
           Create an account
         </Link>
@@ -96,26 +164,37 @@ export function RegisterPage() {
   }
 
   return (
-    <AuthCard eyebrow="Account" title="Create an account">
-      <form onSubmit={onSubmit} noValidate className="space-y-5">
+    <AuthCard
+      eyebrow="Account"
+      title={
+        <>
+          Create an <Accent>account.</Accent>
+        </>
+      }
+      intro="Keep every order in one place."
+    >
+      <form onSubmit={onSubmit} noValidate className="space-y-8">
         <FormError message={errors.form} />
         <Field label="Name" error={errors.name}>
-          <input className="input bg-paper" name="name" autoComplete="name" aria-invalid={!!errors.name} />
+          <input className={input} name="name" autoComplete="name" aria-invalid={!!errors.name} />
         </Field>
         <Field label="Email" error={errors.email}>
-          <input className="input bg-paper" name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
+          <input className={input} name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
         </Field>
-        <Field label="Password" error={errors.password} hint="At least 10 characters">
-          <input className="input bg-paper" name="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} />
-        </Field>
-        <Field label="Confirm password" error={errors.confirm}>
-          <input className="input bg-paper" name="confirm" type="password" autoComplete="new-password" aria-invalid={!!errors.confirm} />
-        </Field>
-        <button className="btn btn-dark w-full" disabled={register.isPending}>
+        <div className="grid gap-8 sm:grid-cols-2">
+          <Field label="Password" error={errors.password} hint="At least 10 characters">
+            <input className={input} name="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} />
+          </Field>
+          <Field label="Confirm password" error={errors.confirm}>
+            <input className={input} name="confirm" type="password" autoComplete="new-password" aria-invalid={!!errors.confirm} />
+          </Field>
+        </div>
+        <button className="btn btn-dark group w-full" disabled={register.isPending}>
           {register.isPending ? "Creating…" : "Create account"}
+          <Arrow />
         </button>
       </form>
-      <p className="mt-8 text-sm">
+      <p className="mt-10 text-sm">
         Already have one?{" "}
         <Link to="/login" state={{ from: returnTo }} className="link">
           Log in
@@ -141,23 +220,31 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <AuthCard eyebrow="Account" title="Reset your password">
+    <AuthCard
+      eyebrow="Account"
+      title={
+        <>
+          Reset your <Accent>password.</Accent>
+        </>
+      }
+      intro="We'll email you a link to choose a new password."
+    >
       {request.isSuccess ? (
         // The API answers the same whether or not the account exists, so the page does too.
         <Notice>If an account uses that email, a reset link is on its way. It works for one hour.</Notice>
       ) : (
-        <form onSubmit={onSubmit} noValidate className="space-y-5">
-          <p className="text-sm text-muted">We'll email you a link to choose a new password.</p>
+        <form onSubmit={onSubmit} noValidate className="space-y-8">
           <FormError message={errors.form} />
           <Field label="Email" error={errors.email}>
-            <input className="input bg-paper" name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
+            <input className={input} name="email" type="email" autoComplete="email" aria-invalid={!!errors.email} />
           </Field>
-          <button className="btn btn-dark w-full" disabled={request.isPending}>
-            Send reset link
+          <button className="btn btn-dark group w-full" disabled={request.isPending}>
+            {request.isPending ? "Sending…" : "Send reset link"}
+            <Arrow />
           </button>
         </form>
       )}
-      <p className="mt-8 text-sm">
+      <p className="mt-10 text-sm">
         <Link to="/login" className="link">
           Back to log in
         </Link>
@@ -190,16 +277,25 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <AuthCard eyebrow="Account" title="Choose a new password">
+    <AuthCard
+      eyebrow="Account"
+      title={
+        <>
+          Choose a new <Accent>password.</Accent>
+        </>
+      }
+      intro="Saving it logs you out everywhere, this browser too."
+    >
       {reset.isSuccess ? (
         <>
           <Notice>Your password has been changed and you were logged out everywhere. Log in with the new password.</Notice>
-          <Link to="/login" className="btn btn-dark mt-8 w-full">
+          <Link to="/login" className="btn btn-dark group mt-8 w-full">
             Log in
+            <Arrow />
           </Link>
         </>
       ) : (
-        <form onSubmit={onSubmit} noValidate className="space-y-5">
+        <form onSubmit={onSubmit} noValidate className="space-y-8">
           <FormError message={errors.form} />
           {errors.form && (
             <Link to="/forgot-password" className="link block text-sm">
@@ -207,13 +303,14 @@ export function ResetPasswordPage() {
             </Link>
           )}
           <Field label="New password" error={errors.password} hint="At least 10 characters">
-            <input className="input bg-paper" name="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} />
+            <input className={input} name="password" type="password" autoComplete="new-password" aria-invalid={!!errors.password} />
           </Field>
           <Field label="Confirm password" error={errors.confirm}>
-            <input className="input bg-paper" name="confirm" type="password" autoComplete="new-password" aria-invalid={!!errors.confirm} />
+            <input className={input} name="confirm" type="password" autoComplete="new-password" aria-invalid={!!errors.confirm} />
           </Field>
-          <button className="btn btn-dark w-full" disabled={reset.isPending}>
-            Save new password
+          <button className="btn btn-dark group w-full" disabled={reset.isPending}>
+            {reset.isPending ? "Saving…" : "Save new password"}
+            <Arrow />
           </button>
         </form>
       )}
@@ -245,7 +342,14 @@ export function VerifyEmailPage() {
   }, [token, mutate]);
 
   return (
-    <AuthCard eyebrow="Account" title="Confirm your email">
+    <AuthCard
+      eyebrow="Account"
+      title={
+        <>
+          Confirm your <Accent>email.</Accent>
+        </>
+      }
+    >
       {!token || verify.isError ? (
         <>
           <FormError message={token ? errorMessage(verify.error) : "This link is incomplete."} />
