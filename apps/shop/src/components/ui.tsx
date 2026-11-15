@@ -25,7 +25,7 @@ export function Field({
       <span className="label">{label}</span>
       {children}
       {error ? (
-        <span className="mt-1.5 block text-xs text-red-700">{error}</span>
+        <span className="mt-1.5 block text-xs text-crimson">{error}</span>
       ) : (
         hint && <span className="mt-1.5 block text-xs text-muted">{hint}</span>
       )}
@@ -36,7 +36,7 @@ export function Field({
 export function FormError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="border-l-2 border-red-700 bg-red-50 px-4 py-3 text-sm text-red-900">
+    <p role="alert" className="border-l-2 border-crimson bg-crimson/8 px-4 py-3 text-sm text-ink">
       {message}
     </p>
   );

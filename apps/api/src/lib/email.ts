@@ -37,7 +37,12 @@ export function getMailer(env: Env): Mailer {
       }),
     });
     // The body explains the failure (e.g. unverified domain); it goes to the log only.
-    if (!res.ok) throw new Error(`Resend ${res.status}: ${await res.text()}`);
+    if (!res.ok) {
+      // Outside production, print the email so its link is still usable: the Resend test
+      // sender (onboarding@resend.dev) only delivers to the Resend account's own address.
+      if (!isProduction) console.log(`[email, not delivered] to=${email.to} subject="${email.subject}"\n${email.text}`);
+      throw new Error(`Resend ${res.status}: ${await res.text()}`);
+    }
   };
 }
 

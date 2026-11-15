@@ -11,8 +11,9 @@ export const delay = (ms: number) => ({ "--d": `${ms}ms` }) as CSSProperties;
 export const pad = (n: number) => String(n).padStart(2, "0");
 
 // Underlined, serif-set form fields, like the catalogue's search box.
+// Focus is ink and an error is crimson, so the two states never look alike.
 export const lineField =
-  "w-full rounded-none border-b border-ink/30 bg-transparent font-editorial text-xl outline-none transition-colors placeholder:text-ink/35 placeholder:italic focus:border-crimson aria-invalid:border-red-600";
+  "w-full rounded-none border-b border-ink/30 bg-transparent font-editorial text-xl outline-none transition-colors placeholder:text-ink/35 placeholder:italic focus:border-ink aria-invalid:border-crimson";
 
 // Adds .is-in to every [data-reveal] element under the returned ref once it scrolls into view.
 // Done with classList (not React state) so a section of 30 animated nodes costs no re-renders.
