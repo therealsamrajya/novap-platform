@@ -56,7 +56,7 @@
 /* Small uppercase label used for eyebrows, nav and buttons. A utility (not a component
    class), so other classes can @apply it. */
 @utility micro {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -70,10 +70,11 @@
     @apply font-medium tracking-[-0.07em] leading-[0.98];
   }
   .btn {
-    @apply micro inline-flex min-h-12 items-center justify-center gap-3 border px-6 transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+    @apply micro inline-flex min-h-12 items-center justify-center gap-3 border px-6 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink disabled:cursor-not-allowed disabled:opacity-50;
   }
   .btn-dark {
-    @apply border-ink bg-ink text-white hover:bg-neutral-700;
+    /* Hover is a warm step up from ink, so it stays on the paper ramp. */
+    @apply border-ink bg-ink text-white hover:bg-[#2a2826];
   }
   .btn-outline {
     @apply border-neutral-400 bg-transparent text-ink hover:border-ink hover:bg-ink hover:text-white;
@@ -82,13 +83,13 @@
     @apply border-paper bg-paper text-ink hover:bg-white;
   }
   .input {
-    @apply h-12 w-full rounded-none border border-neutral-300 bg-transparent px-4 text-sm outline-none focus:border-ink aria-invalid:border-red-600;
+    @apply h-12 w-full rounded-none border border-neutral-300 bg-transparent px-4 text-sm outline-none focus:border-ink aria-invalid:border-crimson;
   }
   .label {
     @apply micro mb-2 block;
   }
   .link {
-    @apply underline decoration-neutral-400 underline-offset-4 hover:decoration-ink;
+    @apply underline decoration-neutral-400 underline-offset-4 hover:decoration-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink;
   }
 
   /* --- Editorial landing page ------------------------------------------------ */
@@ -157,6 +158,13 @@
   .sun.is-in {
     opacity: 1;
     scale: 1;
+  }
+
+  /* Pages where someone came to do a task (log in, reset a password): same reveals, half the wait. */
+  .brisk .reveal,
+  .brisk .mask > span,
+  .brisk .sun {
+    transition-duration: 500ms;
   }
 
   /* Print textures: paper grain over a whole section, halftone dots over an image. */
