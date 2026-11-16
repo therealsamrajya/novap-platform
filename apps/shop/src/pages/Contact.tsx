@@ -17,7 +17,6 @@ const steps = [
   { title: "We reply by email", body: "Usually within one business day, to the address you give here." },
 ];
 
-
 export function ContactPage() {
   useTitle("Contact");
   const me = useMe();
@@ -156,11 +155,11 @@ export function ContactPage() {
                   />
                 </Field>
               </div>
-              <Field label="Subject" error={errors.subject}>
-                <input className={`${field} h-12`} name="subject" placeholder="Order number, or the piece you're asking about" aria-invalid={!!errors.subject} />
+              <Field label="Subject" error={errors.subject} hint="An order number, or the piece you're asking about">
+                <input className={`${field} h-12`} name="subject" aria-invalid={!!errors.subject} />
               </Field>
               <Field label="Message" error={errors.message}>
-                <textarea className={`${field} min-h-44 resize-y py-3 leading-snug`} name="message" placeholder="Tell us what you need" aria-invalid={!!errors.message} />
+                <textarea className={`${field} min-h-44 resize-y py-3 leading-snug`} name="message" aria-invalid={!!errors.message} />
               </Field>
               {/* Honeypot: hidden from people (and screen readers); bots that fill it are ignored by the API. */}
               <div aria-hidden className="absolute -left-[9999px]">
@@ -169,15 +168,12 @@ export function ContactPage() {
                   <input name="website" tabIndex={-1} autoComplete="off" />
                 </label>
               </div>
-              <div className="flex flex-wrap items-center justify-between gap-6">
-                <button className="btn btn-dark group" disabled={send.isPending}>
-                  {send.isPending ? "Sending…" : "Send message"}
-                  <span aria-hidden className="transition-transform group-hover:translate-x-1">
-                    →
-                  </span>
-                </button>
-                <p className="micro text-ink/50">Reply within one business day</p>
-              </div>
+              <button className="btn btn-dark group" disabled={send.isPending}>
+                {send.isPending ? "Sending…" : "Send message"}
+                <span aria-hidden className="transition-transform group-hover:translate-x-1">
+                  →
+                </span>
+              </button>
             </form>
           )}
         </div>

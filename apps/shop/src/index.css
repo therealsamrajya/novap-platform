@@ -56,7 +56,7 @@
 /* Small uppercase label used for eyebrows, nav and buttons. A utility (not a component
    class), so other classes can @apply it. */
 @utility micro {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.16em;
   text-transform: uppercase;
